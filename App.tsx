@@ -1,20 +1,448 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TextInput,
+  FlatList,
+  TouchableOpacity,
+  StatusBar,
+  ActivityIndicator,
+} from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SplashScreen from 'expo-splash-screen';
+import { LinearGradient } from 'expo-linear-gradient';
+
+import { Ionicons } from '@expo/vector-icons';
+import { Task, TaskFilter } from './src/types/task';
+import { taskStorage } from './src/services/taskStorage';
+import { colors } from './src/theme/colors';
+import { playSpinnerTickSound, playMacTrashSound } from './src/services/soundEffects';
+import { Header } from './src/components/Header';
+import { TaskItem } from './src/components/TaskItem';
+
+import { CreateTaskModal } from './src/components/CreateTaskModal';
+import { VoiceTaskModal } from './src/components/VoiceTaskModal';
+import { OnboardingScreen } from './src/components/OnboardingScreen';
+import { DateCapsulePicker, DateItem } from './src/components/DateCapsulePicker';
+import { SplashScreenView } from './src/components/SplashScreenView';
+
+// Prevent native splash screen from auto hiding before app initializes
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const ONBOARDING_KEY = '@ai_task_manager_has_seen_onboarding_v1';
 
 export default function App() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isSplashVisible, setIsSplashVisible] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState<TaskFilter>('all');
+  const [selectedDateId, setSelectedDateId] = useState<string>(() =>
+    String(new Date().getDate()).padStart(2, '0')
+  );
+  const currentClient = 'default_workspace';
+
+  // Modals
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [voiceModalVisible, setVoiceModalVisible] = useState(false);
+
+  // Initialize app
+  useEffect(() => {
+    initializeApp();
+  }, []);
+
+  const initializeApp = async () => {
+    try {
+      await Promise.all([checkOnboarding(), loadTasks()]);
+    } finally {
+      // Hide OS native splash so animated branded splash can display smoothly
+      await SplashScreen.hideAsync().catch(() => {});
+    }
+  };
+
+  const checkOnboarding = async () => {
+    try {
+      const seen = await AsyncStorage.getItem(ONBOARDING_KEY);
+      setShowOnboarding(seen === null ? true : false);
+    } catch {
+      setShowOnboarding(false);
+    }
+  };
+
+  const handleFinishOnboarding = async () => {
+    try {
+      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+    } catch {}
+
+    setShowOnboarding(false);
+  };
+
+  const loadTasks = async () => {
+    setLoading(true);
+    const loaded = await taskStorage.getTasks(currentClient);
+    setTasks(loaded);
+    setLoading(false);
+  };
+
+  const handleToggleComplete = async (id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    const updated = await taskStorage.updateTask(
+      id,
+      { isCompleted: !task.isCompleted },
+      currentClient
+    );
+    setTasks(updated);
+  };
+
+  const handleDeleteTask = async (id: string) => {
+    playMacTrashSound();
+    const updated = await taskStorage.deleteTask(id, currentClient);
+    setTasks(updated);
+  };
+
+  const handleSaveNewTask = async (
+    newTaskData: Omit<Task, 'id' | 'createdAt' | 'isCompleted'>
+  ) => {
+    const newTask: Task = {
+      ...newTaskData,
+      id: `task_${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      isCompleted: false,
+      clientId: currentClient,
+    };
+    const updated = await taskStorage.addTask(newTask, currentClient);
+    setTasks(updated);
+  };
+
+  // Filtered tasks and counts
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((t) => {
+      // Search matching
+      const matchesSearch =
+        t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (t.description && t.description.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      if (!matchesSearch) return false;
+
+      // Filter matching
+      if (selectedFilter === 'all') return true;
+      if (selectedFilter === 'pending') return !t.isCompleted;
+      if (selectedFilter === 'completed') return t.isCompleted;
+      return t.category === selectedFilter;
+    });
+  }, [tasks, searchQuery, selectedFilter]);
+
+  const counts = useMemo(() => {
+    const map: Record<string, number> = {
+      all: tasks.length,
+      pending: tasks.filter((t) => !t.isCompleted).length,
+      completed: tasks.filter((t) => t.isCompleted).length,
+      Work: tasks.filter((t) => t.category === 'Work').length,
+      Personal: tasks.filter((t) => t.category === 'Personal').length,
+      Urgent: tasks.filter((t) => t.category === 'Urgent').length,
+      Health: tasks.filter((t) => t.category === 'Health').length,
+      Finance: tasks.filter((t) => t.category === 'Finance').length,
+    };
+    return map;
+  }, [tasks]);
+
+  // Show Splash Screen on startup
+  if (isSplashVisible) {
+    return (
+      <SafeAreaProvider>
+        <SplashScreenView onFinish={() => setIsSplashVisible(false)} />
+      </SafeAreaProvider>
+    );
+  }
+
+  // Show Onboarding Screen if active
+  if (showOnboarding) {
+    return (
+      <SafeAreaProvider>
+        <OnboardingScreen onStart={handleFinishOnboarding} />
+      </SafeAreaProvider>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="light-content" backgroundColor="#0D0D11" />
+
+        {/* Ambient Twilight Lighting Glow */}
+        <LinearGradient
+          colors={[
+            'rgba(248, 168, 120, 0.12)',
+            'rgba(217, 126, 78, 0.04)',
+            'transparent',
+          ]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 0.35 }}
+          style={styles.ambientGlow}
+          pointerEvents="none"
+        />
+
+        {/* App Header with Interactive Filters */}
+        <Header
+          totalCount={counts.all || 0}
+          pendingCount={counts.pending || 0}
+          completedCount={counts.completed || 0}
+          activeFilter={selectedFilter as any}
+          onSelectFilter={(f) => setSelectedFilter(f)}
+        />
+
+        {/* Date Capsule Strip */}
+        <DateCapsulePicker
+          selectedId={selectedDateId}
+          onSelectDate={(item: DateItem) => setSelectedDateId(item.day)}
+          onAddDate={() => {
+            playSpinnerTickSound(900);
+            setCreateModalVisible(true);
+          }}
+        />
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={17} color={colors.primary} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search tasks..."
+            placeholderTextColor="#767684"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={18} color="#767684" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Task List */}
+        {loading ? (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading tasks...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredTasks}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TaskItem
+                task={item}
+                onToggleComplete={handleToggleComplete}
+                onDelete={handleDeleteTask}
+              />
+            )}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            scrollEventThrottle={16}
+            decelerationRate="normal"
+            bounces={true}
+            overScrollMode="always"
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <View style={styles.emptyIconCircle}>
+                  <Ionicons name="sparkles" size={32} color={colors.primary} />
+                </View>
+                <Text style={styles.emptyTitle}>No tasks found</Text>
+                <Text style={styles.emptySubtitle}>
+                  {searchQuery
+                    ? 'Try searching with different keywords'
+                    : 'Tap "+ Create Task" below to add a task'}
+                </Text>
+              </View>
+            }
+          />
+        )}
+
+        {/* Bottom Action Dock with Create Task & Small Techna Voice Button */}
+        <View style={styles.bottomDock}>
+          <TouchableOpacity
+            style={styles.createTaskBtn}
+            onPress={() => {
+              playSpinnerTickSound(900);
+              setCreateModalVisible(true);
+            }}
+            activeOpacity={0.88}
+          >
+            <Ionicons name="add" size={22} color="#151518" />
+            <Text style={styles.createTaskBtnText}>Create Task</Text>
+          </TouchableOpacity>
+
+          {/* Small Techna Voice Assistant Button */}
+          <TouchableOpacity
+            style={styles.technaVoiceFab}
+            onPress={() => {
+              playSpinnerTickSound(980);
+              setVoiceModalVisible(true);
+            }}
+            activeOpacity={0.82}
+            accessibilityLabel="Speak to add task with Techna"
+          >
+            <LinearGradient
+              colors={['#A855F7', '#EC4899', '#F97316']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.technaVoiceGradient}
+            >
+              <Ionicons name="mic" size={24} color="#FFFFFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+      {/* Create Task Modal with Manual & Voice Entry in One */}
+      <CreateTaskModal
+        visible={createModalVisible}
+        onClose={() => setCreateModalVisible(false)}
+        onSave={handleSaveNewTask}
+        existingTasks={tasks}
+      />
+
+      {/* Techna Voice Task Modal (Step-by-step: Task Name -> Time/Slot -> Priority, Notification Always On) */}
+      <VoiceTaskModal
+        visible={voiceModalVisible}
+        onClose={() => setVoiceModalVisible(false)}
+        onSave={handleSaveNewTask}
+        existingTasks={tasks}
+      />
+    </SafeAreaView>
+  </SafeAreaProvider>
   );
 }
 
+
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#0D0D11',
+  },
+  ambientGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 240,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1A1A1E',
+    marginHorizontal: 20,
+    marginBottom: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#2A2A34',
+    height: 48,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: 48,
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  listContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 150,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#8A8A96',
+    marginTop: 10,
+    fontSize: 13,
+  },
+  emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 40,
+    paddingHorizontal: 30,
+  },
+  emptyIconCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#1E1E24',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#2C2C36',
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    color: '#7E7E8B',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  bottomDock: {
+    position: 'absolute',
+    bottom: 24,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  createTaskBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    borderRadius: 24,
+    gap: 8,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  createTaskBtnText: {
+    color: '#151518',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  technaVoiceFab: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    shadowColor: '#EC4899',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  technaVoiceGradient: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
   },
 });
+

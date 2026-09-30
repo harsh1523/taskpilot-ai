@@ -1,0 +1,1949 @@
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  ScrollView,
+  Switch,
+  Animated,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../theme/colors';
+import { Priority, Task } from '../types/task';
+import { playSpinnerTickSound, speakWithTechna } from '../services/soundEffects';
+import { parseVoiceToTaskForm } from '../services/voiceParser';
+import { TechnaDisplayBorderGlow } from './TechnaDisplayBorderGlow';
+import { voiceRecognition } from '../services/voiceRecognition';
+
+interface CreateTaskScreenProps {
+  onClose: () => void;
+  onSave: (task: Omit<Task, 'id' | 'createdAt' | 'isCompleted'>) => void;
+  initialVoiceActive?: boolean;
+  existingTasks?: Task[];
+}
+
+const priorities: { key: Priority; label: string; color: string }[] = [
+  { key: 'urgent', label: 'Urgent', color: '#EF4444' },
+  { key: 'high', label: 'High', color: '#F97316' },
+  { key: 'medium', label: 'Medium', color: '#F8A878' },
+  { key: 'low', label: 'Low', color: '#34D399' },
+];
+
+export interface DurationOption {
+  minutes: number;
+  label: string;
+}
+
+export const DURATION_OPTIONS: DurationOption[] = [
+  { minutes: 30, label: '30 min' },
+  { minutes: 45, label: '45 min' },
+  { minutes: 60, label: '1 hour' },
+  { minutes: 90, label: '1.5 hrs' },
+  { minutes: 120, label: '2 hours' },
+  { minutes: 180, label: '3 hours' },
+];
+
+export interface RepeatOptionItem {
+  id: string;
+  label: string;
+  subtitle: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}
+
+export const REPEAT_LIST_OPTIONS: RepeatOptionItem[] = [
+  { id: 'none', label: 'None', subtitle: 'Does not repeat', icon: 'close-circle-outline' },
+  { id: 'daily', label: 'Daily', subtitle: 'Repeats every day at this time', icon: 'today-outline' },
+  { id: 'weekdays', label: 'Weekdays (Mon - Fri)', subtitle: 'Repeats on business days only', icon: 'briefcase-outline' },
+  { id: 'weekly', label: 'Weekly on Monday', subtitle: 'Repeats once every week', icon: 'calendar-outline' },
+  { id: 'biweekly', label: 'Every 2 Weeks', subtitle: 'Repeats every other week', icon: 'calendar-number-outline' },
+  { id: 'monthly', label: 'Monthly', subtitle: 'Repeats on the same date each month', icon: 'repeat-outline' },
+];
+
+const baseHours = [
+  { hour: 6, period: 'Morning' as const },
+  { hour: 7, period: 'Morning' as const },
+  { hour: 8, period: 'Morning' as const },
+  { hour: 9, period: 'Morning' as const },
+  { hour: 10, period: 'Morning' as const },
+  { hour: 11, period: 'Morning' as const },
+  { hour: 12, period: 'Afternoon' as const },
+  { hour: 13, period: 'Afternoon' as const },
+  { hour: 14, period: 'Afternoon' as const },
+  { hour: 15, period: 'Afternoon' as const },
+  { hour: 16, period: 'Afternoon' as const },
+  { hour: 17, period: 'Afternoon' as const },
+  { hour: 18, period: 'Evening' as const },
+  { hour: 19, period: 'Evening' as const },
+  { hour: 20, period: 'Evening' as const },
+  { hour: 21, period: 'Night' as const },
+  { hour: 22, period: 'Night' as const },
+  { hour: 23, period: 'Night' as const },
+];
+
+function computeTimeRange(startHour: number, durationMinutes: number) {
+  const startMinTotal = startHour * 60;
+  const endMinTotal = startMinTotal + durationMinutes;
+
+  const toAmPm = (totalMinutes: number) => {
+    let h = Math.floor(totalMinutes / 60) % 24;
+    const m = totalMinutes % 60;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    if (h === 0) h = 12;
+    const hh = h < 10 ? `0${h}` : `${h}`;
+    const mm = m < 10 ? `0${m}` : `${m}`;
+    return `${hh}:${mm} ${ampm}`;
+  };
+
+  const startTime = toAmPm(startMinTotal);
+  const endTime = toAmPm(endMinTotal);
+  const durLabel =
+    durationMinutes < 60
+      ? `${durationMinutes}m`
+      : durationMinutes % 60 === 0
+      ? `${durationMinutes / 60}h`
+      : `${(durationMinutes / 60).toFixed(1)}h`;
+
+  return {
+    startHour,
+    startTime,
+    endTime,
+    rangeString: `${startTime} - ${endTime}`,
+    displayString: `${startTime} - ${endTime} (${durLabel})`,
+    startMinutes: startMinTotal,
+    endMinutes: endMinTotal,
+  };
+}
+
+const sampleVoicePhrases = [
+  'Client feedback due date tomorrow at 6 PM high priority at office',
+  'Morning team meeting due date Friday at 9 AM urgent',
+  'Review quarterly budget due date 5th September at 4 PM',
+  'Gym workout due date tomorrow at 7 PM',
+  'Submit design roadmap due date next Monday 10 AM',
+];
+
+const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
+  onClose,
+  onSave,
+  initialVoiceActive = false,
+  existingTasks = [],
+}) => {
+  const insets = useSafeAreaInsets();
+
+  // Form State
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskDescription, setTaskDescription] = useState('');
+  const [location, setLocation] = useState('');
+  const [meetingLink, setMeetingLink] = useState('');
+  const [priority, setPriority] = useState<Priority>('high');
+
+  // Full Calendar State
+  const now = new Date();
+  const [calYear, setCalYear] = useState(now.getFullYear());
+  const [calMonth, setCalMonth] = useState(now.getMonth());
+  const [selectedDateObj, setSelectedDateObj] = useState(
+    new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+  );
+  const [selectedDate, setSelectedDate] = useState(
+    new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toLocaleDateString('en-US', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    })
+  );
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Time & Duration State: 6:00 AM - ? with Occupied slot detection
+  const [selectedDuration, setSelectedDuration] = useState<number>(60); // 60 mins default
+  const [selectedStartHour, setSelectedStartHour] = useState<number>(18); // 6:00 PM default
+  const [selectedTime, setSelectedTime] = useState<string>('06:00 PM - 07:00 PM');
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [timeFilterPeriod, setTimeFilterPeriod] = useState<'All' | 'Morning' | 'Afternoon' | 'Night'>('All');
+
+  // Notification and Repeat State with List Display
+  const [notificationEnabled, setNotificationEnabled] = useState(true);
+  const [repeatIndex, setRepeatIndex] = useState(0);
+  const [showRepeatList, setShowRepeatList] = useState(false);
+  const [selectedRepeatId, setSelectedRepeatId] = useState('none');
+
+  // Voice Auto-Fill State (unified with manual entry)
+  const [isListening, setIsListening] = useState(initialVoiceActive ?? false);
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const [autoFillNotice, setAutoFillNotice] = useState('');
+
+  // Animated sound waves & pulse
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const soundWave1 = useRef(new Animated.Value(10)).current;
+  const soundWave2 = useRef(new Animated.Value(18)).current;
+  const soundWave3 = useRef(new Animated.Value(14)).current;
+  const soundWave4 = useRef(new Animated.Value(22)).current;
+
+  // Soundwave animation loop
+  useEffect(() => {
+    let waveLoop: Animated.CompositeAnimation | null = null;
+    let pulseLoop: Animated.CompositeAnimation | null = null;
+
+    if (isListening) {
+      pulseLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.15, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        ])
+      );
+      pulseLoop.start();
+
+      waveLoop = Animated.loop(
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(soundWave1, { toValue: 26, duration: 250, useNativeDriver: false }),
+            Animated.timing(soundWave1, { toValue: 8, duration: 250, useNativeDriver: false }),
+          ]),
+          Animated.sequence([
+            Animated.timing(soundWave2, { toValue: 32, duration: 210, useNativeDriver: false }),
+            Animated.timing(soundWave2, { toValue: 12, duration: 210, useNativeDriver: false }),
+          ]),
+          Animated.sequence([
+            Animated.timing(soundWave3, { toValue: 28, duration: 290, useNativeDriver: false }),
+            Animated.timing(soundWave3, { toValue: 9, duration: 290, useNativeDriver: false }),
+          ]),
+          Animated.sequence([
+            Animated.timing(soundWave4, { toValue: 24, duration: 230, useNativeDriver: false }),
+            Animated.timing(soundWave4, { toValue: 11, duration: 230, useNativeDriver: false }),
+          ]),
+        ])
+      );
+      waveLoop.start();
+    } else {
+      pulseAnim.setValue(1);
+      soundWave1.setValue(10);
+      soundWave2.setValue(18);
+      soundWave3.setValue(14);
+      soundWave4.setValue(22);
+    }
+
+    return () => {
+      if (pulseLoop) pulseLoop.stop();
+      if (waveLoop) waveLoop.stop();
+    };
+  }, [isListening]);
+
+  // Voice listening toggle
+  useEffect(() => {
+    if (isListening) {
+      startSpeechRecognition();
+    } else {
+      stopSpeechRecognition();
+    }
+    return () => {
+      stopSpeechRecognition();
+    };
+  }, [isListening]);
+
+  const startSpeechRecognition = async () => {
+    setLiveTranscript('');
+    setAutoFillNotice('');
+
+    speakWithTechna("I'm listening. Tell me your task details.");
+
+    await voiceRecognition.start({
+      onStart: () => {
+        setIsListening(true);
+      },
+      onTranscript: (transcript: string, isFinal: boolean) => {
+        setLiveTranscript(transcript);
+        if (isFinal) {
+          applyVoiceAutoFill(transcript);
+          setIsListening(false);
+          voiceRecognition.stop();
+        }
+      },
+      onError: (err: string) => {
+        setAutoFillNotice(err);
+        setIsListening(false);
+      },
+      onEnd: () => {
+        setIsListening(false);
+      },
+    });
+  };
+
+  const stopSpeechRecognition = () => {
+    voiceRecognition.stop();
+    setIsListening(false);
+  };
+
+  const toggleVoiceListening = () => {
+    playSpinnerTickSound(isListening ? 700 : 1000);
+    setIsListening((prev) => !prev);
+  };
+
+  // Auto-Fill all fields from spoken text without pronouncing buttons
+  const applyVoiceAutoFill = (spokenText: string) => {
+    setLiveTranscript(spokenText);
+    const parsed = parseVoiceToTaskForm(spokenText);
+    let autoFilledCount = 0;
+    const filledNames: string[] = [];
+
+    if (parsed.title) {
+      setTaskTitle(parsed.title);
+      autoFilledCount++;
+      filledNames.push('Title');
+    }
+    if (parsed.description) {
+      setTaskDescription(parsed.description);
+      autoFilledCount++;
+      filledNames.push('Notes');
+    }
+    if (parsed.location) {
+      setLocation(parsed.location);
+      autoFilledCount++;
+      filledNames.push('Location');
+    }
+    if (parsed.meetingLink) {
+      setMeetingLink(parsed.meetingLink);
+      autoFilledCount++;
+      filledNames.push('Link');
+    }
+    if (parsed.priority) {
+      setPriority(parsed.priority);
+      autoFilledCount++;
+      filledNames.push(`${parsed.priority.toUpperCase()} priority`);
+    }
+    if (parsed.dateLabel) {
+      setSelectedDate(parsed.dateLabel);
+      if (parsed.dateObj) {
+        setSelectedDateObj(parsed.dateObj);
+        setCalYear(parsed.dateObj.getFullYear());
+        setCalMonth(parsed.dateObj.getMonth());
+      }
+      autoFilledCount++;
+      filledNames.push(`Due: ${parsed.dateLabel}`);
+    }
+    if (parsed.timeLabel) {
+      const timeMatch = parsed.timeLabel.match(/\b([1-9]|1[0-2])(?::([0-5]\d))?\s*(am|pm)\b/i);
+      if (timeMatch) {
+        let h = parseInt(timeMatch[1], 10);
+        const isPm = timeMatch[3].toLowerCase() === 'pm';
+        if (isPm && h !== 12) h += 12;
+        if (!isPm && h === 12) h = 0;
+        setSelectedStartHour(h);
+        const range = computeTimeRange(h, selectedDuration);
+        setSelectedTime(range.rangeString);
+        autoFilledCount++;
+        filledNames.push(range.rangeString);
+      } else {
+        setSelectedTime(parsed.timeLabel);
+        autoFilledCount++;
+        filledNames.push(parsed.timeLabel);
+      }
+    }
+    if (parsed.notificationEnabled !== undefined) {
+      setNotificationEnabled(parsed.notificationEnabled);
+      autoFilledCount++;
+      filledNames.push('Notification');
+    }
+    if (parsed.repeatIndex !== undefined) {
+      setRepeatIndex(parsed.repeatIndex);
+      const repItem = REPEAT_LIST_OPTIONS[parsed.repeatIndex] || REPEAT_LIST_OPTIONS[0];
+      setSelectedRepeatId(repItem.id);
+      autoFilledCount++;
+      filledNames.push(`Repeat: ${repItem.label}`);
+    }
+
+    if (autoFilledCount > 0) {
+      playSpinnerTickSound(1100);
+      setAutoFillNotice(`✨ Auto-filled: ${filledNames.join(' • ')}`);
+      speakWithTechna(`Auto-filled ${parsed.title || 'task'}.`);
+    }
+  };
+
+  const cycleRepeat = () => {
+    playSpinnerTickSound(800);
+    const nextIdx = (repeatIndex + 1) % REPEAT_LIST_OPTIONS.length;
+    setRepeatIndex(nextIdx);
+    setSelectedRepeatId(REPEAT_LIST_OPTIONS[nextIdx].id);
+  };
+
+  const handleSelectPriority = (p: Priority) => {
+    playSpinnerTickSound(900);
+    setPriority(p);
+  };
+
+  // Calendar Helpers
+  const prevMonth = () => {
+    playSpinnerTickSound(750);
+    if (calMonth === 0) {
+      setCalMonth(11);
+      setCalYear((y) => y - 1);
+    } else {
+      setCalMonth((m) => m - 1);
+    }
+  };
+
+  const nextMonth = () => {
+    playSpinnerTickSound(850);
+    if (calMonth === 11) {
+      setCalMonth(0);
+      setCalYear((y) => y + 1);
+    } else {
+      setCalMonth((m) => m + 1);
+    }
+  };
+
+  const handleSelectDay = (day: number) => {
+    playSpinnerTickSound(900);
+    const newDate = new Date(calYear, calMonth, day);
+    setSelectedDateObj(newDate);
+    const formatted = newDate.toLocaleDateString('en-US', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    });
+    setSelectedDate(formatted);
+  };
+
+  const handleQuickJumpDate = (offsetDays: number, label: string) => {
+    playSpinnerTickSound(850);
+    const target = new Date();
+    target.setDate(target.getDate() + offsetDays);
+    setSelectedDateObj(target);
+    setCalYear(target.getFullYear());
+    setCalMonth(target.getMonth());
+    setSelectedDate(
+      label ||
+        target.toLocaleDateString('en-US', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+        })
+    );
+  };
+
+  // Build calendar matrix
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const firstDayOfWeek = new Date(calYear, calMonth, 1).getDay();
+  const prevMonthTotalDays = new Date(calYear, calMonth, 0).getDate();
+
+  const monthLabel = new Date(calYear, calMonth, 1).toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
+
+  const calendarDays: { day: number; inMonth: boolean; date: Date }[] = [];
+
+  // Trailing days from previous month
+  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    const d = prevMonthTotalDays - i;
+    calendarDays.push({
+      day: d,
+      inMonth: false,
+      date: new Date(calYear, calMonth - 1, d),
+    });
+  }
+
+  // Days of current month
+  for (let d = 1; d <= daysInMonth; d++) {
+    calendarDays.push({
+      day: d,
+      inMonth: true,
+      date: new Date(calYear, calMonth, d),
+    });
+  }
+
+  // Padding days to fill out trailing week cells (total grid multiple of 7)
+  const remaining = (7 - (calendarDays.length % 7)) % 7;
+  for (let d = 1; d <= remaining; d++) {
+    calendarDays.push({
+      day: d,
+      inMonth: false,
+      date: new Date(calYear, calMonth + 1, d),
+    });
+  }
+
+  const isSameDay = (d1: Date, d2: Date) => {
+    return (
+      d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate()
+    );
+  };
+
+  // Occupied schedule slots on this day
+  const occupiedSchedule = useMemo(() => {
+    const blocks: { startMin: number; endMin: number; title: string }[] = [
+      { startMin: 9 * 60, endMin: 10 * 60, title: 'Team Sync' },
+      { startMin: 13 * 60, endMin: 14 * 60, title: 'Client Review' },
+      { startMin: 16 * 60, endMin: 17 * 60, title: 'Sprint Retrospective' },
+    ];
+
+    if (existingTasks && existingTasks.length > 0) {
+      existingTasks.forEach((t) => {
+        if (!t.dueDate) return;
+        const timeMatch = t.dueDate.match(/\b([1-9]|1[0-2])(?::([0-5]\d))?\s*(am|pm)\b/i);
+        if (timeMatch) {
+          let h = parseInt(timeMatch[1], 10);
+          const m = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
+          const isPm = timeMatch[3].toLowerCase() === 'pm';
+          if (isPm && h !== 12) h += 12;
+          if (!isPm && h === 12) h = 0;
+          const sMin = h * 60 + m;
+          blocks.push({
+            startMin: sMin,
+            endMin: sMin + 60,
+            title: t.title.slice(0, 20),
+          });
+        }
+      });
+    }
+
+    return blocks;
+  }, [existingTasks]);
+
+  const isSlotOccupied = (startMin: number, endMin: number) => {
+    for (const b of occupiedSchedule) {
+      if (Math.max(startMin, b.startMin) < Math.min(endMin, b.endMin)) {
+        return { occupied: true, title: b.title };
+      }
+    }
+    return { occupied: false, title: '' };
+  };
+
+  const currentSlotRange = useMemo(() => {
+    return computeTimeRange(selectedStartHour, selectedDuration);
+  }, [selectedStartHour, selectedDuration]);
+
+  const currentSlotOccupied = useMemo(() => {
+    return isSlotOccupied(currentSlotRange.startMinutes, currentSlotRange.endMinutes);
+  }, [currentSlotRange, occupiedSchedule]);
+
+  const allTimeSlots = useMemo(() => {
+    return baseHours.map((item) => {
+      const slot = computeTimeRange(item.hour, selectedDuration);
+      const occ = isSlotOccupied(slot.startMinutes, slot.endMinutes);
+      return {
+        ...item,
+        ...slot,
+        isOccupied: occ.occupied,
+        occupiedTitle: occ.title,
+      };
+    });
+  }, [selectedDuration, occupiedSchedule]);
+
+  const availableSlots = useMemo(() => {
+    return allTimeSlots.filter((s) => !s.isOccupied);
+  }, [allTimeSlots]);
+
+  const filteredTimeSlots = useMemo(() => {
+    return allTimeSlots.filter((opt) => {
+      if (timeFilterPeriod === 'All') return true;
+      if (timeFilterPeriod === 'Morning') return opt.period === 'Morning';
+      if (timeFilterPeriod === 'Afternoon') return opt.period === 'Afternoon';
+      if (timeFilterPeriod === 'Night') return opt.period === 'Evening' || opt.period === 'Night';
+      return true;
+    });
+  }, [allTimeSlots, timeFilterPeriod]);
+
+  const handleSelectDuration = (durationMin: number) => {
+    playSpinnerTickSound(850);
+    setSelectedDuration(durationMin);
+    const updated = computeTimeRange(selectedStartHour, durationMin);
+    setSelectedTime(updated.rangeString);
+  };
+
+  const handleSelectTimeSlot = (slot: { startHour: number; rangeString: string; isOccupied?: boolean }) => {
+    playSpinnerTickSound(slot.isOccupied ? 650 : 900);
+    setSelectedStartHour(slot.startHour);
+    setSelectedTime(slot.rangeString);
+  };
+
+  const handleSave = () => {
+    const trimmed = taskTitle.trim();
+    if (!trimmed) {
+      Alert.alert('Required', 'Please enter a task name.');
+      return;
+    }
+
+    playSpinnerTickSound(1100);
+
+    let fullDescription = taskDescription.trim();
+    if (location.trim()) {
+      fullDescription += (fullDescription ? '\n' : '') + `📍 ${location.trim()}`;
+    }
+    if (meetingLink.trim()) {
+      fullDescription += (fullDescription ? '\n' : '') + `🔗 ${meetingLink.trim()}`;
+    }
+
+    const dueDateFormatted = `${selectedDate} • ${selectedTime}`;
+
+    onSave({
+      title: trimmed,
+      description: fullDescription || `Scheduled for ${selectedDate} at ${selectedTime}`,
+      category: 'Work',
+      priority,
+      dueDate: dueDateFormatted,
+      createdVia: liveTranscript ? 'voice' : 'manual',
+      voiceTranscription: liveTranscript || undefined,
+    });
+
+    onClose();
+  };
+
+  const topPadding = Math.max(insets.top, 14);
+  const bottomPadding = Math.max(insets.bottom, 20);
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
+      {/* Apple Intelligence Techna Display Border Glow when mic is active */}
+      <TechnaDisplayBorderGlow active={isListening} />
+
+      {/* Top Ambient Twilight Lighting Bloom */}
+      <LinearGradient
+        colors={[
+          'rgba(248, 168, 120, 0.16)',
+          'rgba(217, 126, 78, 0.08)',
+          'rgba(14, 14, 20, 0.02)',
+          'transparent',
+        ]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 0.45 }}
+        style={styles.ambientGlow}
+        pointerEvents="none"
+      />
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardView}
+      >
+        {/* Navigation Bar matching screenshot */}
+        <View style={[styles.navBar, { paddingTop: topPadding }]}>
+          {/* Circular Close Button */}
+          <TouchableOpacity
+            style={styles.circleIconBtn}
+            onPress={onClose}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={20} color="#D1D1DB" />
+          </TouchableOpacity>
+
+          {/* Techna Voice Mode Toggle Pill in Center */}
+          <TouchableOpacity
+            style={[styles.technaPillBtn, isListening && styles.technaPillBtnActive]}
+            onPress={toggleVoiceListening}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.technaDot, isListening && styles.technaDotActive]} />
+            <Ionicons
+              name={isListening ? 'mic' : 'mic-outline'}
+              size={15}
+              color={isListening ? colors.primary : '#A0A0B0'}
+            />
+            <Text style={[styles.technaPillText, isListening && styles.technaPillTextActive]}>
+              {isListening ? 'Listening...' : 'Voice Auto-Fill'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Circular Confirm Button with Warm Peach Glow */}
+          <TouchableOpacity
+            style={styles.confirmCircleBtn}
+            onPress={handleSave}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="checkmark" size={22} color="#101014" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Scrollable Form Content */}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+          overScrollMode="always"
+          scrollEventThrottle={16}
+          decelerationRate="fast"
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding + 30 }]}
+        >
+          {/* Title Header Group */}
+          <View style={styles.titleSection}>
+            <Text style={styles.screenHeading}>New task</Text>
+            <Text style={styles.screenSubheading}>Add details manually or tap mic to speak</Text>
+          </View>
+
+          {/* Auto-filled status toast if voice input occurred */}
+          {autoFillNotice.length > 0 && (
+            <View style={styles.noticeCapsule}>
+              <Ionicons name="sparkles" size={13} color="#F8A878" style={{ marginRight: 6 }} />
+              <Text style={styles.noticeText}>{autoFillNotice}</Text>
+            </View>
+          )}
+
+          {/* ================= CARD 1: Task Title & Description ================= */}
+          <View style={styles.card}>
+            <View style={styles.titleInputRow}>
+              <TextInput
+                style={styles.titleTextInput}
+                placeholder="Task title"
+                placeholderTextColor="#6C6C78"
+                value={taskTitle}
+                onChangeText={setTaskTitle}
+                returnKeyType="next"
+              />
+              {taskTitle.length > 0 && (
+                <TouchableOpacity onPress={() => setTaskTitle('')} style={styles.clearBtn}>
+                  <Ionicons name="close-circle" size={18} color="#7A7A88" />
+                </TouchableOpacity>
+              )}
+              {/* Mic button: Tap to speak & auto-fill */}
+              <TouchableOpacity
+                style={[styles.inputMicBtn, isListening && styles.inputMicBtnActive]}
+                onPress={toggleVoiceListening}
+                activeOpacity={0.75}
+                accessibilityLabel="Tap to speak task details"
+              >
+                <Ionicons
+                  name={isListening ? 'mic' : 'mic-outline'}
+                  size={18}
+                  color={isListening ? '#101014' : colors.primary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Inline Voice Feedback Box if user tapped mic */}
+            {isListening && (
+              <View style={styles.inlineListeningBox}>
+                <View style={styles.soundWaveRow}>
+                  <Animated.View style={[styles.soundWaveBar, { height: soundWave1 }]} />
+                  <Animated.View style={[styles.soundWaveBar, { height: soundWave2 }]} />
+                  <Animated.View style={[styles.soundWaveBar, { height: soundWave3 }]} />
+                  <Animated.View style={[styles.soundWaveBar, { height: soundWave4 }]} />
+                  <Animated.View style={[styles.soundWaveBar, { height: soundWave2 }]} />
+                </View>
+                <View style={styles.inlineListeningTexts}>
+                  <Text style={styles.inlineListeningTitle}>Listening... Speak your task</Text>
+                  <Text style={styles.inlineListeningSub} numberOfLines={1}>
+                    {liveTranscript || 'e.g., "Team meeting tomorrow at 10 AM"'}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            <View style={styles.hairlineDivider} />
+
+            <TextInput
+              style={styles.descTextInput}
+              placeholder="Task description"
+              placeholderTextColor="#5C5C68"
+              value={taskDescription}
+              onChangeText={setTaskDescription}
+              multiline
+              numberOfLines={3}
+            />
+          </View>
+
+          {/* ================= CARD 2: Location & Meeting Link ================= */}
+          <View style={styles.card}>
+            <View style={styles.rowItem}>
+              <Ionicons name="location-outline" size={18} color="#60A5FA" style={styles.rowIcon} />
+              <TextInput
+                style={styles.rowInput}
+                placeholder="Location"
+                placeholderTextColor="#5C5C68"
+                value={location}
+                onChangeText={setLocation}
+              />
+            </View>
+
+            <View style={styles.hairlineDivider} />
+
+            <View style={styles.rowItem}>
+              <Ionicons name="link-outline" size={18} color="#A78BFA" style={styles.rowIcon} />
+              <TextInput
+                style={styles.rowInput}
+                placeholder="Meeting link"
+                placeholderTextColor="#5C5C68"
+                value={meetingLink}
+                onChangeText={setMeetingLink}
+                autoCapitalize="none"
+              />
+            </View>
+          </View>
+
+          {/* ================= CARD 3: Select Priority ================= */}
+          <View style={styles.card}>
+            <Text style={styles.cardSectionTitle}>Select Priority</Text>
+            <View style={styles.priorityPillRow}>
+              {priorities.map((item) => {
+                const isSelected = item.key === priority;
+                return (
+                  <TouchableOpacity
+                    key={item.key}
+                    style={[
+                      styles.priorityPill,
+                      isSelected && [
+                        styles.priorityPillSelected,
+                        { backgroundColor: item.color },
+                      ],
+                    ]}
+                    onPress={() => handleSelectPriority(item.key)}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[
+                        styles.priorityPillText,
+                        isSelected && { color: '#101014', fontWeight: '800' },
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* ================= CARD 4: Due Date, Time, Notification, Repeat ================= */}
+          <View style={styles.card}>
+            {/* Due Date Row (Tapping opens the full interactive Month Calendar) */}
+            <TouchableOpacity
+              style={styles.interactiveRow}
+              onPress={() => {
+                playSpinnerTickSound(800);
+                setShowDatePicker(!showDatePicker);
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.labelWithIcon}>
+                <Ionicons name="calendar-outline" size={18} color="#FBBF24" style={styles.rowIcon} />
+                <Text style={styles.rowLabelText}>Due date</Text>
+              </View>
+              <View style={[styles.pillBadge, showDatePicker && styles.pillBadgeActive]}>
+                <Text style={styles.pillBadgeText}>{selectedDate}</Text>
+                <Ionicons
+                  name={showDatePicker ? 'chevron-up' : 'chevron-down'}
+                  size={14}
+                  color={showDatePicker ? colors.primary : '#8E8E9E'}
+                  style={{ marginLeft: 6 }}
+                />
+              </View>
+            </TouchableOpacity>
+
+            {/* ================= FULL INTERACTIVE CALENDAR ================= */}
+            {showDatePicker && (
+              <View style={styles.calendarContainer}>
+                {/* Quick Date Presets Row */}
+                <View style={styles.quickDateRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.quickDateBtn,
+                      isSameDay(selectedDateObj, new Date()) && styles.quickDateBtnActive,
+                    ]}
+                    onPress={() => handleQuickJumpDate(0, 'Today')}
+                  >
+                    <Text
+                      style={[
+                        styles.quickDateBtnText,
+                        isSameDay(selectedDateObj, new Date()) && styles.quickDateBtnTextActive,
+                      ]}
+                    >
+                      Today
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.quickDateBtn,
+                      isSameDay(selectedDateObj, new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)) &&
+                        styles.quickDateBtnActive,
+                    ]}
+                    onPress={() => handleQuickJumpDate(1, 'Tomorrow')}
+                  >
+                    <Text
+                      style={[
+                        styles.quickDateBtnText,
+                        isSameDay(selectedDateObj, new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)) &&
+                          styles.quickDateBtnTextActive,
+                      ]}
+                    >
+                      Tomorrow
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.quickDateBtn}
+                    onPress={() => handleQuickJumpDate(7, '')}
+                  >
+                    <Text style={styles.quickDateBtnText}>+1 Week</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Calendar Month Header & Navigation */}
+                <View style={styles.calendarHeaderRow}>
+                  <TouchableOpacity
+                    onPress={prevMonth}
+                    style={styles.calendarNavBtn}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="chevron-back" size={18} color="#D1D1DB" />
+                  </TouchableOpacity>
+                  <Text style={styles.calendarMonthTitle}>{monthLabel}</Text>
+                  <TouchableOpacity
+                    onPress={nextMonth}
+                    style={styles.calendarNavBtn}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="chevron-forward" size={18} color="#D1D1DB" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Day-of-Week Column Labels */}
+                <View style={styles.calendarWeekRow}>
+                  {dayNames.map((dName, i) => (
+                    <Text key={i} style={styles.calendarWeekLabel}>
+                      {dName}
+                    </Text>
+                  ))}
+                </View>
+
+                {/* Calendar Days Grid */}
+                <View style={styles.calendarDaysGrid}>
+                  {calendarDays.map((item, index) => {
+                    const isSelected = isSameDay(item.date, selectedDateObj);
+                    const isToday = isSameDay(item.date, new Date());
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.calendarDayCell,
+                          isSelected && styles.calendarDayCellSelected,
+                          isToday && !isSelected && styles.calendarDayCellToday,
+                        ]}
+                        onPress={() => item.inMonth && handleSelectDay(item.day)}
+                        disabled={!item.inMonth}
+                        activeOpacity={0.75}
+                      >
+                        <Text
+                          style={[
+                            styles.calendarDayText,
+                            !item.inMonth && styles.calendarDayTextDisabled,
+                            isToday && !isSelected && styles.calendarDayTextToday,
+                            isSelected && styles.calendarDayTextSelected,
+                          ]}
+                        >
+                          {item.day}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
+            <View style={styles.hairlineDivider} />
+
+            {/* Time Row (Tapping opens the full 6:00 AM to 12:00 AM selector) */}
+            <TouchableOpacity
+              style={styles.interactiveRow}
+              onPress={() => {
+                playSpinnerTickSound(800);
+                setShowTimePicker(!showTimePicker);
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.labelWithIcon}>
+                <Ionicons name="time-outline" size={18} color="#34D399" style={styles.rowIcon} />
+                <Text style={styles.rowLabelText}>Time</Text>
+              </View>
+              <View style={[styles.pillBadge, showTimePicker && styles.pillBadgeActive]}>
+                <Text style={styles.pillBadgeText}>{selectedTime}</Text>
+                <Ionicons
+                  name={showTimePicker ? 'chevron-up' : 'chevron-down'}
+                  size={14}
+                  color={showTimePicker ? colors.primary : '#8E8E9E'}
+                  style={{ marginLeft: 6 }}
+                />
+              </View>
+            </TouchableOpacity>
+
+            {/* ================= TIME PICKER WITH DURATION (6 - ?) & AVAILABILITY ================= */}
+            {showTimePicker && (
+              <View style={styles.timePickerContainer}>
+                {/* 1. Duration Selector Section (6:00 AM - ?) */}
+                <View style={styles.durationSection}>
+                  <View style={styles.durationHeaderRow}>
+                    <Text style={styles.durationSectionLabel}>Duration (e.g. 6 - ?)</Text>
+                    <Text style={styles.durationCurrentBadge}>
+                      {selectedDuration < 60
+                        ? `${selectedDuration} mins`
+                        : selectedDuration === 60
+                        ? '1 hour'
+                        : `${selectedDuration / 60} hours`}
+                    </Text>
+                  </View>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.durationRow}
+                  >
+                    {DURATION_OPTIONS.map((dur) => {
+                      const isSel = selectedDuration === dur.minutes;
+                      return (
+                        <TouchableOpacity
+                          key={dur.minutes}
+                          style={[styles.durationChip, isSel && styles.durationChipSelected]}
+                          onPress={() => handleSelectDuration(dur.minutes)}
+                          activeOpacity={0.75}
+                        >
+                          <Text style={[styles.durationChipText, isSel && styles.durationChipTextSelected]}>
+                            {dur.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+
+                {/* 2. Occupied Alert & Available Slots recommendation */}
+                {currentSlotOccupied.occupied && (
+                  <View style={styles.occupiedAlertCard}>
+                    <View style={styles.occupiedAlertHeader}>
+                      <Ionicons name="alert-circle" size={17} color="#F87171" style={{ marginRight: 6 }} />
+                      <Text style={styles.occupiedAlertTitle}>
+                        Slot Occupied ({currentSlotRange.rangeString})
+                      </Text>
+                    </View>
+                    <Text style={styles.occupiedAlertSub}>
+                      Already booked for "{currentSlotOccupied.title}". Tap an available slot below:
+                    </Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.availableSlotsRow}
+                    >
+                      {availableSlots.map((avSlot) => (
+                        <TouchableOpacity
+                          key={avSlot.rangeString}
+                          style={styles.availableSlotChip}
+                          onPress={() => handleSelectTimeSlot(avSlot)}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons name="sparkles" size={12} color="#151518" style={{ marginRight: 4 }} />
+                          <Text style={styles.availableSlotChipText}>{avSlot.rangeString}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                {/* 3. Period Filter Tabs */}
+                <View style={styles.periodFilterRow}>
+                  {(['All', 'Morning', 'Afternoon', 'Night'] as const).map((period) => {
+                    const isAct = timeFilterPeriod === period;
+                    return (
+                      <TouchableOpacity
+                        key={period}
+                        style={[styles.periodTab, isAct && styles.periodTabActive]}
+                        onPress={() => {
+                          playSpinnerTickSound(750);
+                          setTimeFilterPeriod(period);
+                        }}
+                      >
+                        <Text style={[styles.periodTabText, isAct && styles.periodTabTextActive]}>
+                          {period}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* 4. Time Slots Grid with Start-End Ranges & Occupied Badges */}
+                <View style={styles.timeSlotsGrid}>
+                  {filteredTimeSlots.map((item) => {
+                    const isSelected = selectedStartHour === item.startHour;
+                    return (
+                      <TouchableOpacity
+                        key={item.startHour}
+                        style={[
+                          styles.timeSlotChip,
+                          isSelected && styles.timeSlotChipSelected,
+                          item.isOccupied && !isSelected && styles.timeSlotChipOccupied,
+                        ]}
+                        onPress={() => handleSelectTimeSlot(item)}
+                        activeOpacity={0.75}
+                      >
+                        <View style={styles.timeSlotRowTop}>
+                          <Text
+                            style={[
+                              styles.timeSlotChipText,
+                              isSelected && styles.timeSlotChipTextSelected,
+                              item.isOccupied && !isSelected && styles.timeSlotChipTextOccupied,
+                            ]}
+                          >
+                            {item.rangeString}
+                          </Text>
+                        </View>
+                        <View style={styles.timeSlotStatusRow}>
+                          {item.isOccupied ? (
+                            <View style={styles.occupiedTag}>
+                              <View style={styles.redDot} />
+                              <Text
+                                style={[
+                                  styles.occupiedTagText,
+                                  isSelected && styles.occupiedTagTextSelected,
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {item.occupiedTitle || 'Busy'}
+                              </Text>
+                            </View>
+                          ) : (
+                            <View style={styles.availableTag}>
+                              <View style={[styles.greenDot, isSelected && styles.greenDotSelected]} />
+                              <Text
+                                style={[
+                                  styles.availableTagText,
+                                  isSelected && styles.availableTagTextSelected,
+                                ]}
+                              >
+                                Available
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
+            <View style={styles.hairlineDivider} />
+
+            {/* Notification Switch Row */}
+            <View style={styles.interactiveRow}>
+              <View style={styles.labelWithIcon}>
+                <Ionicons name="notifications-outline" size={18} color="#F472B6" style={styles.rowIcon} />
+                <Text style={styles.rowLabelText}>Notification</Text>
+              </View>
+              <Switch
+                value={notificationEnabled}
+                onValueChange={(val) => {
+                  playSpinnerTickSound(val ? 1000 : 700);
+                  setNotificationEnabled(val);
+                }}
+                trackColor={{ false: '#262634', true: colors.primary }}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor="#262634"
+              />
+            </View>
+
+            <View style={styles.hairlineDivider} />
+
+            {/* Repeat Row (Tapping opens Repeat List in list form) */}
+            <TouchableOpacity
+              style={styles.interactiveRow}
+              onPress={() => {
+                playSpinnerTickSound(800);
+                setShowRepeatList(!showRepeatList);
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.labelWithIcon}>
+                <Ionicons name="repeat-outline" size={18} color="#818CF8" style={styles.rowIcon} />
+                <Text style={styles.rowLabelText}>Repeat</Text>
+              </View>
+              <View style={styles.valueWithChevron}>
+                <Text style={styles.rowValueSubtleText}>
+                  {REPEAT_LIST_OPTIONS.find((r) => r.id === selectedRepeatId)?.label || 'None'}
+                </Text>
+                <Ionicons
+                  name={showRepeatList ? 'chevron-up' : 'chevron-forward'}
+                  size={16}
+                  color={showRepeatList ? colors.primary : '#606070'}
+                />
+              </View>
+            </TouchableOpacity>
+
+            {/* Repeat List Options in List Form */}
+            {showRepeatList && (
+              <View style={styles.repeatListContainer}>
+                {REPEAT_LIST_OPTIONS.map((item) => {
+                  const isSelected = selectedRepeatId === item.id;
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={[styles.repeatListItem, isSelected && styles.repeatListItemSelected]}
+                      onPress={() => {
+                        playSpinnerTickSound(850);
+                        setSelectedRepeatId(item.id);
+                        setRepeatIndex(REPEAT_LIST_OPTIONS.findIndex((r) => r.id === item.id));
+                        setShowRepeatList(false);
+                      }}
+                      activeOpacity={0.75}
+                    >
+                      <View style={[styles.repeatIconCircle, isSelected && styles.repeatIconCircleSelected]}>
+                        <Ionicons
+                          name={item.icon}
+                          size={18}
+                          color={isSelected ? '#151518' : colors.primary}
+                        />
+                      </View>
+                      <View style={styles.repeatTextGroup}>
+                        <Text style={[styles.repeatItemLabel, isSelected && styles.repeatItemLabelSelected]}>
+                          {item.label}
+                        </Text>
+                        <Text style={styles.repeatItemSub}>{item.subtitle}</Text>
+                      </View>
+                      <View style={[styles.repeatRadioCircle, isSelected && styles.repeatRadioCircleSelected]}>
+                        {isSelected && <Ionicons name="checkmark" size={14} color="#151518" />}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0A0A0E',
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  ambientGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 300,
+  },
+  navBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  circleIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#16161F',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#242434',
+  },
+  technaPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#16161F',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#262636',
+    gap: 6,
+  },
+  technaPillBtnActive: {
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(248, 168, 120, 0.12)',
+  },
+  technaDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#5A5A68',
+  },
+  technaDotActive: {
+    backgroundColor: colors.primary,
+  },
+  technaPillText: {
+    color: '#A0A0B0',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  technaPillTextActive: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  confirmCircleBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  titleSection: {
+    marginBottom: 16,
+  },
+  screenHeading: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.6,
+  },
+  screenSubheading: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#767686',
+    marginTop: 3,
+  },
+
+  // Notice capsule for voice feedback
+  noticeCapsule: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(248, 168, 120, 0.14)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(248, 168, 120, 0.3)',
+  },
+  noticeText: {
+    color: '#F8A878',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  // Cards
+  card: {
+    backgroundColor: '#14141C',
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#20202C',
+  },
+  titleInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  titleTextInput: {
+    flex: 1,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    paddingVertical: 4,
+  },
+  clearBtn: {
+    padding: 4,
+    marginRight: 2,
+  },
+  inputMicBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1E1E28',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
+    borderWidth: 1,
+    borderColor: '#2D2D3E',
+  },
+  inputMicBtnActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.45,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  inlineListeningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(248, 168, 120, 0.08)',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 10,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(248, 168, 120, 0.25)',
+  },
+  soundWaveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 24,
+    gap: 3,
+    marginRight: 10,
+  },
+  soundWaveBar: {
+    width: 3,
+    backgroundColor: colors.primary,
+    borderRadius: 2,
+  },
+  inlineListeningTexts: {
+    flex: 1,
+  },
+  inlineListeningTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 2,
+  },
+  inlineListeningSub: {
+    fontSize: 11,
+    color: '#A0A0B0',
+  },
+  descTextInput: {
+    fontSize: 14,
+    color: '#D4D4E0',
+    lineHeight: 20,
+    minHeight: 58,
+    paddingVertical: 4,
+    textAlignVertical: 'top',
+  },
+  rowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  rowIcon: {
+    marginRight: 10,
+  },
+  rowInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#E6E6F0',
+    fontWeight: '500',
+  },
+  hairlineDivider: {
+    height: 1,
+    backgroundColor: '#20202C',
+    marginVertical: 10,
+  },
+  cardSectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#EAEAEF',
+    marginBottom: 12,
+  },
+  priorityPillRow: {
+    flexDirection: 'row',
+    backgroundColor: '#1A1A24',
+    borderRadius: 14,
+    padding: 3,
+    gap: 4,
+  },
+  priorityPill: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  priorityPillSelected: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  priorityPillText: {
+    fontSize: 12,
+    color: '#7E7E8E',
+    fontWeight: '600',
+  },
+  interactiveRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  labelWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rowLabelText: {
+    fontSize: 15,
+    color: '#E4E4EE',
+    fontWeight: '600',
+  },
+  pillBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#20202A',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2D2D3C',
+  },
+  pillBadgeActive: {
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(248, 168, 120, 0.12)',
+  },
+  pillBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  valueWithChevron: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  rowValueSubtleText: {
+    color: '#9090A0',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  // ================= FULL CALENDAR STYLES =================
+  calendarContainer: {
+    backgroundColor: '#171722',
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 10,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#262636',
+  },
+  quickDateRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  quickDateBtn: {
+    flex: 1,
+    backgroundColor: '#20202E',
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2E2E40',
+  },
+  quickDateBtnActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  quickDateBtnText: {
+    color: '#B0B0C0',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  quickDateBtnTextActive: {
+    color: '#101014',
+    fontWeight: '800',
+  },
+  calendarHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  calendarNavBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#222232',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  calendarMonthTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  calendarWeekRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 6,
+  },
+  calendarWeekLabel: {
+    width: 36,
+    textAlign: 'center',
+    color: '#767688',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  calendarDaysGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+  },
+  calendarDayCell: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 2,
+  },
+  calendarDayCellSelected: {
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  calendarDayCellToday: {
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  calendarDayText: {
+    color: '#E0E0EC',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  calendarDayTextDisabled: {
+    color: '#3C3C4C',
+  },
+  calendarDayTextToday: {
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  calendarDayTextSelected: {
+    color: '#101014',
+    fontWeight: '800',
+  },
+
+  // ================= FULL 6AM - 12AM TIME PICKER STYLES =================
+  timePickerContainer: {
+    backgroundColor: '#171722',
+    borderRadius: 16,
+    padding: 12,
+    marginTop: 10,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#262636',
+  },
+  periodFilterRow: {
+    flexDirection: 'row',
+    backgroundColor: '#111118',
+    borderRadius: 10,
+    padding: 3,
+    marginBottom: 10,
+    gap: 4,
+  },
+  periodTab: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  periodTabActive: {
+    backgroundColor: '#262636',
+  },
+  periodTabText: {
+    color: '#808092',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  periodTabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  // Duration & Occupied Time Styles
+  durationSection: {
+    marginBottom: 12,
+  },
+  durationHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  durationSectionLabel: {
+    color: '#8A8A9C',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  durationCurrentBadge: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  durationRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  durationChip: {
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: '#1F1F2B',
+    borderWidth: 1,
+    borderColor: '#2D2D3E',
+  },
+  durationChipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  durationChipText: {
+    color: '#A0A0B2',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  durationChipTextSelected: {
+    color: '#151518',
+    fontWeight: '800',
+  },
+  occupiedAlertCard: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+  },
+  occupiedAlertHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  occupiedAlertTitle: {
+    color: '#F87171',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  occupiedAlertSub: {
+    color: '#D1D5DB',
+    fontSize: 12,
+    marginBottom: 10,
+  },
+  availableSlotsRow: {
+    gap: 8,
+  },
+  availableSlotChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+  },
+  availableSlotChipText: {
+    color: '#151518',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  timeSlotsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  timeSlotChip: {
+    width: '48%',
+    backgroundColor: '#20202E',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2B2B3C',
+  },
+  timeSlotChipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  timeSlotChipOccupied: {
+    backgroundColor: '#191924',
+    borderColor: '#3D2528',
+    opacity: 0.88,
+  },
+  timeSlotRowTop: {
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  timeSlotChipText: {
+    color: '#E0E0EC',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  timeSlotChipTextSelected: {
+    color: '#101014',
+    fontWeight: '800',
+  },
+  timeSlotChipTextOccupied: {
+    color: '#D1A2A6',
+  },
+  timeSlotStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  availableTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  greenDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#34D399',
+  },
+  greenDotSelected: {
+    backgroundColor: '#101014',
+  },
+  availableTagText: {
+    color: '#34D399',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  availableTagTextSelected: {
+    color: '#261808',
+    fontWeight: '700',
+  },
+  occupiedTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    maxWidth: '100%',
+  },
+  redDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
+  },
+  occupiedTagText: {
+    color: '#EF4444',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  occupiedTagTextSelected: {
+    color: '#341010',
+    fontWeight: '700',
+  },
+
+  // Repeat List Form Styles
+  repeatListContainer: {
+    backgroundColor: '#171722',
+    borderRadius: 16,
+    padding: 8,
+    marginTop: 8,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: '#262636',
+  },
+  repeatListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#1E1E28',
+    marginBottom: 6,
+  },
+  repeatListItemSelected: {
+    backgroundColor: 'rgba(248, 168, 120, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(248, 168, 120, 0.45)',
+  },
+  repeatIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#262634',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  repeatIconCircleSelected: {
+    backgroundColor: colors.primary,
+  },
+  repeatTextGroup: {
+    flex: 1,
+  },
+  repeatItemLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#E2E2EC',
+    marginBottom: 2,
+  },
+  repeatItemLabelSelected: {
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  repeatItemSub: {
+    fontSize: 11,
+    color: '#767688',
+  },
+  repeatRadioCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: '#3D3D52',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  repeatRadioCircleSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  manualSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 10,
+    paddingHorizontal: 4,
+  },
+  manualHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  manualHeaderText: {
+    color: '#D4D4E2',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  manualHeaderSubtext: {
+    color: '#767688',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+});
