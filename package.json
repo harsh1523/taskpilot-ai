@@ -19,6 +19,7 @@
     "expo-haptics": "~57.0.3",
     "expo-linear-gradient": "~57.0.2",
     "expo-speech": "~57.0.3",
+    "expo-speech-recognition": "^57.1.0",
     "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",

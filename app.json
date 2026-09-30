@@ -9,7 +9,8 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Allow Techna to listen to your voice to create tasks."
+        "NSMicrophoneUsageDescription": "Allow Techna to listen to your voice to create tasks.",
+        "NSSpeechRecognitionUsageDescription": "Allow Techna to recognize your speech to create tasks."
       }
     },
     "android": {
@@ -20,7 +21,9 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["RECORD_AUDIO"]
+      "permissions": [
+        "RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -41,8 +44,14 @@
           "resizeMode": "contain",
           "backgroundColor": "#0D0D11"
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow Techna to listen to your voice to create tasks.",
+          "speechRecognitionPermission": "Allow Techna to recognize your speech to create tasks."
+        }
       ]
     ]
   }
 }
-

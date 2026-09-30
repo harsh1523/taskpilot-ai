@@ -399,13 +399,15 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
             </Text>
           </TouchableOpacity>
 
-          {/* Circular Confirm Button with Warm Peach Glow */}
+          {/* Top Save Task Button */}
           <TouchableOpacity
-            style={styles.confirmCircleBtn}
+            style={styles.navSaveBtn}
             onPress={handleSave}
             activeOpacity={0.8}
+            accessibilityLabel="Save task"
           >
-            <Ionicons name="checkmark" size={22} color="#101014" />
+            <Ionicons name="checkmark-circle" size={17} color="#101014" style={{ marginRight: 5 }} />
+            <Text style={styles.navSaveBtnText}>Save</Text>
           </TouchableOpacity>
         </View>
 
@@ -711,6 +713,24 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
               </View>
             )}
           </View>
+
+          {/* Primary Save Task Button */}
+          <TouchableOpacity
+            style={styles.bottomSaveButton}
+            onPress={handleSave}
+            activeOpacity={0.85}
+            accessibilityLabel="Save task"
+          >
+            <LinearGradient
+              colors={colors.gradients.techna}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.bottomSaveGradient}
+            >
+              <Ionicons name="checkmark-circle" size={20} color="#151518" style={{ marginRight: 8 }} />
+              <Text style={styles.bottomSaveBtnText}>Save Task</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -782,18 +802,48 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '700',
   },
-  confirmCircleBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary,
+  navSaveBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 22,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.45,
-    shadowRadius: 10,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  navSaveBtnText: {
+    color: '#101014',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  bottomSaveButton: {
+    marginTop: 26,
+    marginBottom: 20,
+    borderRadius: 18,
+    overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
     elevation: 6,
+  },
+  bottomSaveGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 18,
+  },
+  bottomSaveBtnText: {
+    color: '#151518',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   scrollContent: {
     paddingHorizontal: 20,

@@ -120,7 +120,6 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
       setVoiceInputText('');
       setMicStatusMessage(null);
 
-      speakWithTechna("I'm listening. Tell me your task name, date and time.");
       startSpeechRecognition();
     } else {
       stopSpeechRecognition();
@@ -242,12 +241,14 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
     setTaskDone(true);
     setLiveTranscript('');
     setVoiceInputText('');
+    stopSpeechRecognition();
 
-    speakWithTechna('Got it. When would you like to schedule this?');
+    speakWithTechna('When would you like to schedule this?');
 
     setTimeout(() => {
       setCurrentStep('time');
-    }, 600);
+      startSpeechRecognition();
+    }, 1100);
   };
 
   // Step 2: Due Date & Time Spoken
@@ -318,12 +319,14 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
     setTimeDone(true);
     setLiveTranscript('');
     setVoiceInputText('');
+    stopSpeechRecognition();
 
     speakWithTechna(`Scheduled for ${dateStr} at ${slotStr}. What priority should I set?`);
 
     setTimeout(() => {
       setCurrentStep('priority');
-    }, 600);
+      startSpeechRecognition();
+    }, 1200);
   };
 
   // Step 3: Priority Selected -> Display "Done ✓" -> complete
@@ -333,6 +336,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
     setPriorityDone(true);
     setLiveTranscript('');
     setVoiceInputText('');
+    stopSpeechRecognition();
 
     speakWithTechna(`Priority set to ${p}. Saving task.`);
 
@@ -386,16 +390,31 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
           <View style={styles.headerRow}>
             <View style={styles.technaStatusGroup}>
               <View style={[styles.technaLiveDot, !isListening && styles.technaLiveDotInactive]} />
-              <Text style={styles.technaTitleText}>Techna AI Voice Assistant</Text>
+              <Text style={styles.technaTitleText}>Techna AI Voice</Text>
             </View>
-            <CircleIconButton
-              icon="close"
-              size={32}
-              iconSize={18}
-              color="#8A8A9C"
-              backgroundColor="transparent"
-              onPress={onClose}
-            />
+            <View style={styles.headerRightGroup}>
+              {taskTitle.trim().length > 0 && currentStep !== 'done' && (
+                <TouchableOpacity
+                  style={styles.topSavePill}
+                  onPress={() => {
+                    playSpinnerTickSound(1100);
+                    finalizeAndSave(selectedPriority, taskTitle, selectedDate, selectedTimeRange);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="checkmark-circle" size={14} color="#151518" style={{ marginRight: 4 }} />
+                  <Text style={styles.topSavePillText}>Save Task</Text>
+                </TouchableOpacity>
+              )}
+              <CircleIconButton
+                icon="close"
+                size={32}
+                iconSize={18}
+                color="#8A8A9C"
+                backgroundColor="transparent"
+                onPress={onClose}
+              />
+            </View>
           </View>
 
           {/* Central Techna Animated Glowing Orb (Reusable Component) */}
@@ -679,6 +698,29 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
             </View>
           )}
 
+          {/* Manual Save Task Button when title is entered */}
+          {taskTitle.trim().length > 0 && currentStep !== 'done' && (
+            <TouchableOpacity
+              style={styles.modalSaveTaskBtn}
+              onPress={() => {
+                playSpinnerTickSound(1100);
+                finalizeAndSave(selectedPriority, taskTitle, selectedDate, selectedTimeRange);
+              }}
+              activeOpacity={0.85}
+              accessibilityLabel="Save Task"
+            >
+              <LinearGradient
+                colors={colors.gradients.techna}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.modalSaveTaskGradient}
+              >
+                <Ionicons name="checkmark-circle" size={18} color="#151518" style={{ marginRight: 6 }} />
+                <Text style={styles.modalSaveTaskBtnText}>Save Task</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
           {/* Mic Toggle Bar at bottom */}
           <TouchableOpacity
             style={[styles.micActionRow, isListening && styles.micActionRowActive]}
@@ -725,6 +767,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 12,
+  },
+  headerRightGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  topSavePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  topSavePillText: {
+    color: '#151518',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  modalSaveTaskBtn: {
+    marginBottom: 10,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  modalSaveTaskGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+  },
+  modalSaveTaskBtnText: {
+    color: '#151518',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   technaStatusGroup: {
     flexDirection: 'row',
