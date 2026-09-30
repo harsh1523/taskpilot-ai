@@ -1,13 +1,33 @@
 import { Platform } from 'react-native';
+import { requireOptionalNativeModule } from 'expo';
+
+// Cached reference to native module or null
+let cachedExpoSpeechModule: any = undefined;
+
 // Safe dynamic loader to prevent Expo Go crashes when native binary is not compiled
 function getExpoSpeechRecognitionModule(): any {
   if (Platform.OS === 'web') return null;
+  if (cachedExpoSpeechModule !== undefined) return cachedExpoSpeechModule;
+
   try {
-    // Avoid top-level unhandled requireNativeModule crash in Expo Go / environments without native binary
+    // Check if the native binary actually contains ExpoSpeechRecognition before requiring the JS package.
+    // In Expo Go or environments without native binary, requireOptionalNativeModule safely returns null.
+    const nativeMod =
+      typeof requireOptionalNativeModule === 'function'
+        ? requireOptionalNativeModule('ExpoSpeechRecognition')
+        : (globalThis as any)?.expo?.modules?.ExpoSpeechRecognition || null;
+
+    if (!nativeMod) {
+      cachedExpoSpeechModule = null;
+      return null;
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const mod = require('expo-speech-recognition');
-    return mod?.ExpoSpeechRecognitionModule || null;
+    cachedExpoSpeechModule = mod?.ExpoSpeechRecognitionModule || nativeMod;
+    return cachedExpoSpeechModule;
   } catch {
+    cachedExpoSpeechModule = null;
     return null;
   }
 }
