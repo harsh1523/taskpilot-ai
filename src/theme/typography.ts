@@ -1,5 +1,3 @@
-import { colors } from './colors';
-
 export const fontSizes = {
   tiny: 10,
   xs: 11,
@@ -27,42 +25,42 @@ export const typography = {
   h1: {
     fontSize: fontSizes.titleLg,
     fontWeight: fontWeights.bold,
-    color: colors.textPrimary,
+    color: '#FFFFFF',
   },
   h2: {
     fontSize: fontSizes.titleMd,
     fontWeight: fontWeights.bold,
-    color: colors.textPrimary,
+    color: '#FFFFFF',
   },
   h3: {
     fontSize: fontSizes.titleSm,
     fontWeight: fontWeights.semibold,
-    color: colors.textPrimary,
+    color: '#FFFFFF',
   },
   subtitle: {
     fontSize: fontSizes.base,
     fontWeight: fontWeights.medium,
-    color: colors.textSecondary,
+    color: '#9A9AA2',
   },
   body: {
     fontSize: fontSizes.base,
     fontWeight: fontWeights.regular,
-    color: colors.textPrimary,
+    color: '#FFFFFF',
   },
   bodyMuted: {
     fontSize: fontSizes.md,
     fontWeight: fontWeights.regular,
-    color: colors.textMuted,
+    color: '#666670',
   },
   caption: {
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.medium,
-    color: colors.textSecondary,
+    color: '#9A9AA2',
   },
   label: {
     fontSize: fontSizes.md,
     fontWeight: fontWeights.semibold,
-    color: colors.textSecondary,
+    color: '#9A9AA2',
   },
   button: {
     fontSize: fontSizes.lg,
@@ -72,6 +70,6 @@ export const typography = {
   pill: {
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.semibold,
-    color: colors.textPrimary,
+    color: '#FFFFFF',
   },
 } as const;
