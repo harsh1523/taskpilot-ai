@@ -4,6 +4,8 @@ export interface ScheduleBlock {
   startMin: number;
   endMin: number;
   title: string;
+  taskId?: string;
+  task?: Task;
 }
 
 export interface TimeRangeResult {
@@ -19,21 +21,14 @@ export interface TimeRangeResult {
 export interface SlotConflictResult {
   occupied: boolean;
   title: string;
+  conflictingTask?: Task;
+  conflictingTaskId?: string;
 }
 
 export interface AvailableSlot {
   startHour: number;
   rangeString: string;
 }
-
-/**
- * Default mock schedule blocks to simulate real-world calendar commitments.
- */
-export const DEFAULT_SCHEDULE_BLOCKS: ScheduleBlock[] = [
-  { startMin: 9 * 60, endMin: 10 * 60, title: 'Team Sync' },
-  { startMin: 13 * 60, endMin: 14 * 60, title: 'Client Review' },
-  { startMin: 16 * 60, endMin: 17 * 60, title: 'Sprint Retrospective' },
-];
 
 /**
  * Parses time strings such as "10 AM", "6:30 pm", "8pm", "11:15 am" into 24-hour hour, minute, and total minutes.
@@ -101,10 +96,11 @@ export function computeTimeRange(startHour: number, durationMinutes: number): Ti
 }
 
 /**
- * Extracts occupied schedule blocks combining default commitments and all existing tasks with a valid dueDate.
+ * Extracts occupied schedule blocks strictly from existing user tasks with a valid dueDate.
+ * No static or mock schedule data is injected.
  */
 export function getOccupiedSchedule(existingTasks: Task[] = []): ScheduleBlock[] {
-  const blocks: ScheduleBlock[] = [...DEFAULT_SCHEDULE_BLOCKS];
+  const blocks: ScheduleBlock[] = [];
 
   if (existingTasks && existingTasks.length > 0) {
     existingTasks.forEach((t) => {
@@ -114,7 +110,9 @@ export function getOccupiedSchedule(existingTasks: Task[] = []): ScheduleBlock[]
         blocks.push({
           startMin: parsed.totalMinutes,
           endMin: parsed.totalMinutes + 60,
-          title: t.title.slice(0, 20),
+          title: t.title.slice(0, 30),
+          taskId: t.id,
+          task: t,
         });
       }
     });
@@ -134,7 +132,12 @@ export function checkSlotConflict(
   const endMin = startMin + durationMin;
   for (const b of occupiedSchedule) {
     if (Math.max(startMin, b.startMin) < Math.min(endMin, b.endMin)) {
-      return { occupied: true, title: b.title };
+      return {
+        occupied: true,
+        title: b.title,
+        conflictingTask: b.task,
+        conflictingTaskId: b.taskId,
+      };
     }
   }
   return { occupied: false, title: '' };
@@ -159,6 +162,35 @@ export function computeAvailableSlots(
     }
   }
   return slots;
+}
+
+/**
+ * Finds the closest upcoming available free slot to shift an occupied task into.
+ */
+export function findNextAvailableSlot(
+  occupiedSchedule: ScheduleBlock[],
+  afterStartMin: number,
+  durationMin: number = 60
+): AvailableSlot | null {
+  const startH = Math.max(6, Math.floor(afterStartMin / 60) + 1);
+  for (let h = startH; h <= 22; h++) {
+    const sMin = h * 60;
+    const res = checkSlotConflict(sMin, durationMin, occupiedSchedule);
+    if (!res.occupied) {
+      const slot = computeTimeRange(h, durationMin);
+      return { startHour: h, rangeString: slot.rangeString };
+    }
+  }
+  // Wrap around earlier in the day if necessary
+  for (let h = 6; h < startH; h++) {
+    const sMin = h * 60;
+    const res = checkSlotConflict(sMin, durationMin, occupiedSchedule);
+    if (!res.occupied) {
+      const slot = computeTimeRange(h, durationMin);
+      return { startHour: h, rangeString: slot.rangeString };
+    }
+  }
+  return null;
 }
 
 /**

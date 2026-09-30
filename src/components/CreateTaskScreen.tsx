@@ -40,6 +40,7 @@ interface CreateTaskScreenProps {
   onSave: (task: Omit<Task, 'id' | 'createdAt' | 'isCompleted'>) => void;
   initialVoiceActive?: boolean;
   existingTasks?: Task[];
+  onShiftTask?: (taskId: string, newDueDate: string) => Promise<void> | void;
 }
 
 export interface RepeatOptionItem {
@@ -71,6 +72,7 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
   onSave,
   initialVoiceActive = false,
   existingTasks = [],
+  onShiftTask,
 }) => {
   const insets = useSafeAreaInsets();
 
@@ -610,6 +612,15 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
                   playSpinnerTickSound(850);
                   setSelectedDuration(dur);
                   setSelectedTime(computeTimeRange(selectedStartHour, dur).rangeString);
+                }}
+                onShiftOccupiedSlot={async (conflictingTaskId, newSlotRange, conflictingTaskTitle) => {
+                  if (onShiftTask) {
+                    const shiftedDueDate = `${selectedDate} • ${newSlotRange}`;
+                    await onShiftTask(conflictingTaskId, shiftedDueDate);
+                    playSpinnerTickSound(1150);
+                    setAutoFillNotice(`🔄 Shifted "${conflictingTaskTitle}" to ${newSlotRange}`);
+                    speakWithTechna(`Shifted ${conflictingTaskTitle} to ${newSlotRange}. Selected slot is now yours.`);
+                  }
                 }}
               />
             )}

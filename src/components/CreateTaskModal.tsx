@@ -9,6 +9,7 @@ interface CreateTaskModalProps {
   onSave: (task: Omit<Task, 'id' | 'createdAt' | 'isCompleted'>) => void;
   initialVoiceActive?: boolean;
   existingTasks?: Task[];
+  onShiftTask?: (taskId: string, newDueDate: string) => Promise<void> | void;
 }
 
 export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
@@ -17,6 +18,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   onSave,
   initialVoiceActive = false,
   existingTasks = [],
+  onShiftTask,
 }) => {
   return (
     <Modal
@@ -31,6 +33,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         onSave={onSave}
         initialVoiceActive={initialVoiceActive}
         existingTasks={existingTasks}
+        onShiftTask={onShiftTask}
       />
     </Modal>
   );

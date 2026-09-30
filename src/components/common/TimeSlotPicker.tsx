@@ -6,6 +6,7 @@ import { playSpinnerTickSound } from '../../services/soundEffects';
 import {
   computeTimeRange,
   checkSlotConflict,
+  findNextAvailableSlot,
   ScheduleBlock,
 } from '../../utils/scheduleUtils';
 
@@ -51,6 +52,7 @@ interface TimeSlotPickerProps {
   occupiedSchedule: ScheduleBlock[];
   onSelectSlot: (slot: { startHour: number; rangeString: string; isOccupied: boolean }) => void;
   onSelectDuration: (durationMinutes: number) => void;
+  onShiftOccupiedSlot?: (conflictingTaskId: string, newDueDate: string, conflictingTaskTitle: string) => void;
 }
 
 export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
@@ -59,6 +61,7 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
   occupiedSchedule,
   onSelectSlot,
   onSelectDuration,
+  onShiftOccupiedSlot,
 }) => {
   const [timeFilterPeriod, setTimeFilterPeriod] = useState<'All' | 'Morning' | 'Afternoon' | 'Night'>('All');
 
@@ -69,6 +72,11 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
   const currentSlotOccupied = useMemo(() => {
     return checkSlotConflict(currentSlotRange.startMinutes, selectedDuration, occupiedSchedule);
   }, [currentSlotRange, selectedDuration, occupiedSchedule]);
+
+  const nextSlotForShift = useMemo(() => {
+    if (!currentSlotOccupied.occupied) return null;
+    return findNextAvailableSlot(occupiedSchedule, currentSlotRange.startMinutes, selectedDuration);
+  }, [currentSlotOccupied.occupied, occupiedSchedule, currentSlotRange.startMinutes, selectedDuration]);
 
   const allTimeSlots = useMemo(() => {
     return baseHours.map((item) => {
@@ -129,7 +137,7 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
         </ScrollView>
       </View>
 
-      {/* 2. Occupied Alert & Alternative Slot Suggestions */}
+      {/* 2. Occupied Alert, Shift Option & Alternative Slot Suggestions */}
       {currentSlotOccupied.occupied && (
         <View style={styles.occupiedAlertCard}>
           <View style={styles.occupiedAlertHeader}>
@@ -139,8 +147,40 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
             </Text>
           </View>
           <Text style={styles.occupiedAlertSub}>
-            "{currentSlotRange.rangeString}" is already booked. Pick an available slot:
+            "{currentSlotRange.rangeString}" is already booked. You can shift the occupied task or choose another slot:
           </Text>
+
+          {/* Option to Shift the Occupied Task to Next Free Slot */}
+          {nextSlotForShift && currentSlotOccupied.conflictingTaskId && onShiftOccupiedSlot && (
+            <TouchableOpacity
+              style={styles.shiftSlotBtn}
+              onPress={() => {
+                playSpinnerTickSound(1050);
+                onShiftOccupiedSlot(
+                  currentSlotOccupied.conflictingTaskId!,
+                  nextSlotForShift.rangeString,
+                  currentSlotOccupied.title
+                );
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={styles.shiftSlotBtnIconCircle}>
+                <Ionicons name="swap-horizontal" size={16} color="#151518" />
+              </View>
+              <View style={styles.shiftSlotBtnContent}>
+                <Text style={styles.shiftSlotBtnTitle} numberOfLines={1}>
+                  Shift "{currentSlotOccupied.title}"
+                </Text>
+                <Text style={styles.shiftSlotBtnSub}>
+                  Move to {nextSlotForShift.rangeString} & keep this slot
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+
+          {/* Alternative Slots Carousel */}
+          <Text style={styles.alternativeSlotsHeader}>Or pick an open slot:</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.availableSlotsScroll}>
             {availableSlots.slice(0, 5).map((avSlot) => (
               <TouchableOpacity
@@ -313,6 +353,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     marginBottom: 10,
+  },
+  shiftSlotBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E1B26',
+    borderWidth: 1,
+    borderColor: 'rgba(248, 168, 120, 0.45)',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 12,
+  },
+  shiftSlotBtnIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  shiftSlotBtnContent: {
+    flex: 1,
+  },
+  shiftSlotBtnTitle: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  shiftSlotBtnSub: {
+    color: '#F8A878',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  alternativeSlotsHeader: {
+    color: '#9E9EB2',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   availableSlotsScroll: {
     gap: 8,

@@ -29,6 +29,8 @@ import {
   computeAvailableSlots,
   computeTimeRange,
   parseTimeString,
+  findNextAvailableSlot,
+  AvailableSlot,
 } from '../utils/scheduleUtils';
 
 interface VoiceTaskModalProps {
@@ -36,6 +38,7 @@ interface VoiceTaskModalProps {
   onClose: () => void;
   onSave: (task: Omit<Task, 'id' | 'createdAt' | 'isCompleted'>) => void;
   existingTasks?: Task[];
+  onShiftTask?: (taskId: string, newDueDate: string) => Promise<void> | void;
 }
 
 type TechnaStep = 'task' | 'time' | 'priority' | 'done';
@@ -59,6 +62,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
   onClose,
   onSave,
   existingTasks = [],
+  onShiftTask,
 }) => {
   const [currentStep, setCurrentStep] = useState<TechnaStep>('task');
   const [isListening, setIsListening] = useState(false);
@@ -75,6 +79,12 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
   const [selectedTimeRange, setSelectedTimeRange] = useState('06:00 PM - 07:00 PM');
   const [timeDone, setTimeDone] = useState(false);
   const [occupiedWarning, setOccupiedWarning] = useState<string | null>(null);
+  const [conflictingInfo, setConflictingInfo] = useState<{
+    taskId?: string;
+    title: string;
+    nextAvailableSlot: AvailableSlot | null;
+    desiredSlot: string;
+  } | null>(null);
 
   const [selectedPriority, setSelectedPriority] = useState<Priority>('high');
   const [priorityDone, setPriorityDone] = useState(false);
@@ -103,6 +113,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
       setSelectedTimeRange('06:00 PM - 07:00 PM');
       setTimeDone(false);
       setOccupiedWarning(null);
+      setConflictingInfo(null);
       setSelectedPriority('high');
       setPriorityDone(false);
       setLiveTranscript('');
@@ -203,6 +214,18 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
         handleTaskNameAdded(clean.charAt(0).toUpperCase() + clean.slice(1));
       }
     } else if (currentStep === 'time') {
+      const lower = text.toLowerCase();
+      if (
+        conflictingInfo &&
+        (lower.includes('shift') ||
+          lower.includes('move') ||
+          lower.includes('change slot') ||
+          lower.includes('reschedule') ||
+          lower.includes('take slot'))
+      ) {
+        handleShiftOccupiedSlot();
+        return;
+      }
       handleTimeSpoken(text);
     } else if (currentStep === 'priority') {
       const prio = parseSpokenPriority(text);
@@ -250,13 +273,41 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
     const slotStr = computeTimeRange(hour, 60).rangeString;
 
     if (conflict.occupied) {
+      const nextSlot = findNextAvailableSlot(defaultOccupiedSchedule, hour * 60, 60);
       playSpinnerTickSound(650);
-      setOccupiedWarning(`"${slotStr}" is already occupied (${conflict.title}). Please pick an available slot:`);
+      setOccupiedWarning(`"${slotStr}" is already occupied (${conflict.title}). Pick another slot or shift "${conflict.title}":`);
       setSelectedTimeRange(slotStr);
-      speakWithTechna(`That slot is occupied by ${conflict.title}. Please pick an open slot.`);
+      setConflictingInfo({
+        taskId: conflict.conflictingTaskId,
+        title: conflict.title,
+        nextAvailableSlot: nextSlot,
+        desiredSlot: slotStr,
+      });
+      speakWithTechna(`That slot is occupied by ${conflict.title}. You can shift it to ${nextSlot ? nextSlot.rangeString : 'another time'} or choose an open slot.`);
     } else {
+      setConflictingInfo(null);
       handleTimeSlotConfirmed(slotStr, dateStr);
     }
+  };
+
+  // Shift conflicting occupied task to next free window
+  const handleShiftOccupiedSlot = async () => {
+    if (!conflictingInfo || !conflictingInfo.nextAvailableSlot) return;
+    playSpinnerTickSound(1050);
+
+    if (conflictingInfo.taskId && onShiftTask) {
+      const shiftedDueDate = `${selectedDate} • ${conflictingInfo.nextAvailableSlot.rangeString}`;
+      await onShiftTask(conflictingInfo.taskId, shiftedDueDate);
+    }
+
+    const desired = conflictingInfo.desiredSlot;
+    const title = conflictingInfo.title;
+    const nextRange = conflictingInfo.nextAvailableSlot.rangeString;
+    setConflictingInfo(null);
+    setOccupiedWarning(null);
+
+    speakWithTechna(`Shifted ${title} to ${nextRange}. Assigned ${desired} to this task.`);
+    handleTimeSlotConfirmed(desired, selectedDate);
   };
 
   // Step 2 Confirmation: Display "Done ✓" -> advance
@@ -549,6 +600,30 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
                     <Text style={styles.occupiedAlertTitle}>Slot Occupied</Text>
                   </View>
                   <Text style={styles.occupiedAlertSub}>{occupiedWarning}</Text>
+
+                  {/* Option to Shift the Occupied Task */}
+                  {conflictingInfo?.nextAvailableSlot && conflictingInfo.taskId && onShiftTask && (
+                    <TouchableOpacity
+                      style={styles.shiftSlotBtn}
+                      onPress={handleShiftOccupiedSlot}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.shiftSlotBtnIconCircle}>
+                        <Ionicons name="swap-horizontal" size={16} color="#151518" />
+                      </View>
+                      <View style={styles.shiftSlotBtnContent}>
+                        <Text style={styles.shiftSlotBtnTitle} numberOfLines={1}>
+                          Shift "{conflictingInfo.title}"
+                        </Text>
+                        <Text style={styles.shiftSlotBtnSub}>
+                          Move to {conflictingInfo.nextAvailableSlot.rangeString} & keep {conflictingInfo.desiredSlot}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+                    </TouchableOpacity>
+                  )}
+
+                  <Text style={styles.alternativeSlotsHeader}>Or pick an open slot:</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
                     {availableFreeSlots.slice(0, 5).map((slot) => (
                       <TouchableOpacity
@@ -891,6 +966,47 @@ const styles = StyleSheet.create({
     color: '#E0E0EC',
     fontSize: 12,
     marginBottom: 8,
+  },
+  shiftSlotBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E1B26',
+    borderWidth: 1,
+    borderColor: 'rgba(248, 168, 120, 0.45)',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 10,
+  },
+  shiftSlotBtnIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  shiftSlotBtnContent: {
+    flex: 1,
+  },
+  shiftSlotBtnTitle: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  shiftSlotBtnSub: {
+    color: '#F8A878',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  alternativeSlotsHeader: {
+    color: '#9E9EB2',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   availableChip: {
     flexDirection: 'row',

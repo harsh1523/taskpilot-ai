@@ -83,7 +83,12 @@ export default function App() {
   const loadTasks = async () => {
     setLoading(true);
     const loaded = await taskStorage.getTasks(currentClient);
-    setTasks(loaded);
+    // Purge any legacy demo tasks so only real user data is stored
+    const userOnlyTasks = loaded.filter((t) => !t.id.startsWith('demo-'));
+    if (userOnlyTasks.length !== loaded.length) {
+      await taskStorage.saveAllTasks(userOnlyTasks, currentClient);
+    }
+    setTasks(userOnlyTasks);
     setLoading(false);
   };
 
@@ -101,6 +106,15 @@ export default function App() {
   const handleDeleteTask = async (id: string) => {
     playMacTrashSound();
     const updated = await taskStorage.deleteTask(id, currentClient);
+    setTasks(updated);
+  };
+
+  const handleShiftTask = async (taskId: string, newDueDate: string) => {
+    const updated = await taskStorage.updateTask(
+      taskId,
+      { dueDate: newDueDate },
+      currentClient
+    );
     setTasks(updated);
   };
 
@@ -303,6 +317,7 @@ export default function App() {
         onClose={() => setCreateModalVisible(false)}
         onSave={handleSaveNewTask}
         existingTasks={tasks}
+        onShiftTask={handleShiftTask}
       />
 
       {/* Techna Voice Task Modal (Step-by-step: Task Name -> Time/Slot -> Priority, Notification Always On) */}
@@ -311,6 +326,7 @@ export default function App() {
         onClose={() => setVoiceModalVisible(false)}
         onSave={handleSaveNewTask}
         existingTasks={tasks}
+        onShiftTask={handleShiftTask}
       />
     </SafeAreaView>
   </SafeAreaProvider>
