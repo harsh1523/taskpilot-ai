@@ -7,7 +7,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
+import { colors, spacing, padding, radius, fontSizes, fontWeights, commonStyles } from '../theme';
 import { playSpinnerTickSound } from '../services/soundEffects';
 
 export interface DateItem {
@@ -163,20 +163,19 @@ export const DateCapsulePicker: React.FC<DateCapsulePickerProps> = ({
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginVertical: 4,
+    marginVertical: spacing.xs,
   },
   container: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 12,
+    paddingHorizontal: padding.screenHorizontal,
+    paddingVertical: spacing.lg,
+    gap: spacing.lg,
     alignItems: 'center',
   },
   capsuleWrapper: {
     width: 54,
     height: 102,
     position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
+    ...commonStyles.center,
     overflow: 'visible',
   },
   capsule: {
@@ -185,7 +184,7 @@ const styles = StyleSheet.create({
     borderRadius: 27,
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing.lg,
     zIndex: 2,
   },
   capsuleNormal: {
@@ -239,7 +238,7 @@ const styles = StyleSheet.create({
     borderRadius: 27,
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing.lg,
     borderWidth: 1.5,
     borderColor: '#3D3D48',
     borderStyle: 'dashed',
@@ -247,41 +246,41 @@ const styles = StyleSheet.create({
   },
   monthBadgeText: {
     color: '#828290',
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: fontSizes.tiny,
+    fontWeight: fontWeights.bold,
     letterSpacing: 0.5,
   },
   monthBadgeTextSelected: {
     color: '#151518',
-    fontWeight: '800',
+    fontWeight: fontWeights.heavy,
   },
   dayText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '800',
+    color: colors.textPrimary,
+    fontSize: fontSizes.titleSm,
+    fontWeight: fontWeights.heavy,
   },
   dayTextSelected: {
     color: '#151518',
     fontWeight: '900',
-    fontSize: 20,
+    fontSize: fontSizes.titleMd,
   },
   weekdayText: {
     color: '#767682',
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.semibold,
   },
   weekdayTextSelected: {
     color: '#151518',
-    fontWeight: '700',
+    fontWeight: fontWeights.bold,
   },
   dashedDayText: {
     color: '#8A8A96',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: fontSizes.subtitle,
+    fontWeight: fontWeights.bold,
   },
   dashedMonthText: {
     color: '#6A6A76',
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: fontSizes.tiny,
+    fontWeight: fontWeights.semibold,
   },
 });

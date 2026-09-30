@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../theme/colors';
+import { colors, spacing, radius, fontSizes, fontWeights, commonStyles } from '../../theme';
 import { playSpinnerTickSound } from '../../services/soundEffects';
 import { isSameDay, formatDateLabel } from '../../utils/scheduleUtils';
 
@@ -207,18 +207,18 @@ export const CalendarPickerView: React.FC<CalendarPickerViewProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 8,
+    paddingTop: spacing.md,
   },
   quickDateRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 14,
+    gap: spacing.md,
+    marginBottom: spacing.xl - 2,
   },
   quickDateBtn: {
-    flex: 1,
-    paddingVertical: 9,
+    ...commonStyles.flex1,
+    paddingVertical: spacing.md + 1,
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: radius.lg,
     backgroundColor: '#161620',
     borderWidth: 1,
     borderColor: '#242432',
@@ -229,54 +229,51 @@ const styles = StyleSheet.create({
   },
   quickDateBtnText: {
     color: '#9090A2',
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
   },
   quickDateBtnTextActive: {
     color: '#151518',
-    fontWeight: '800',
+    fontWeight: fontWeights.heavy,
   },
   calendarMonthHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    marginBottom: 6,
+    ...commonStyles.rowBetween,
+    paddingVertical: spacing.base,
+    marginBottom: spacing.sm,
   },
   calNavArrow: {
-    padding: 6,
-    borderRadius: 8,
+    padding: spacing.sm,
+    borderRadius: radius.md,
     backgroundColor: '#181822',
   },
   calendarMonthTitle: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
+    color: colors.textPrimary,
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.bold,
     letterSpacing: -0.2,
   },
   calendarWeekRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: spacing.md,
   },
   calendarWeekLabel: {
     width: 38,
     textAlign: 'center',
     color: '#6E6E80',
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
   },
   calendarDaysGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    rowGap: 6,
+    rowGap: spacing.sm,
   },
   calendarDayCell: {
     width: 38,
     height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
+    ...commonStyles.center,
     borderRadius: 19,
   },
   calendarDayCellSelected: {
@@ -287,12 +284,12 @@ const styles = StyleSheet.create({
   },
   calendarDayNumber: {
     color: '#E0E0EA',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.semibold,
   },
   calendarDayNumberSelected: {
     color: '#151518',
-    fontWeight: '800',
+    fontWeight: fontWeights.heavy,
   },
   calendarDayNumberMuted: {
     color: '#666678',
@@ -300,8 +297,8 @@ const styles = StyleSheet.create({
   calendarTodayDot: {
     width: 4,
     height: 4,
-    borderRadius: 2,
+    borderRadius: radius.xxs,
     backgroundColor: colors.primary,
-    marginTop: 2,
+    marginTop: spacing.xxs,
   },
 });

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IsometricCubeIllustration } from './IsometricCubeIllustration';
-import { colors } from '../theme/colors';
+import { colors, spacing, radius, fontSizes, fontWeights, commonStyles } from '../theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -118,7 +118,7 @@ export const SplashScreenView: React.FC<SplashScreenViewProps> = ({ onFinish }) 
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    ...commonStyles.flex1,
     backgroundColor: '#0D0D11',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -132,56 +132,54 @@ const styles = StyleSheet.create({
     height: height * 0.6,
   },
   centerContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
+    ...commonStyles.center,
+    ...commonStyles.flex1,
   },
   illustrationWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 28,
+    ...commonStyles.center,
+    marginBottom: spacing.huge - 4,
   },
   textContainer: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: spacing.huge,
   },
   brandTitle: {
     fontSize: 32,
     fontWeight: '300',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     letterSpacing: 2,
   },
   brandAccent: {
-    fontWeight: '800',
+    fontWeight: fontWeights.heavy,
     color: colors.primary,
   },
   tagline: {
-    fontSize: 13,
+    fontSize: fontSizes.md,
     color: '#8A8A96',
-    fontWeight: '500',
+    fontWeight: fontWeights.medium,
     letterSpacing: 1,
-    marginTop: 6,
+    marginTop: spacing.sm,
     textTransform: 'uppercase',
   },
   progressTrack: {
     width: 140,
     height: 3,
     backgroundColor: '#222228',
-    borderRadius: 2,
+    borderRadius: radius.xxs,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
     backgroundColor: colors.primary,
-    borderRadius: 2,
+    borderRadius: radius.xxs,
   },
   footer: {
     alignItems: 'center',
   },
   footerText: {
-    fontSize: 10,
+    fontSize: fontSizes.tiny,
     color: '#5C5C66',
     letterSpacing: 3,
-    fontWeight: '700',
+    fontWeight: fontWeights.bold,
   },
 });

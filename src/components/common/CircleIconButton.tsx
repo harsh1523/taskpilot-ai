@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../theme/colors';
+import { colors, commonStyles } from '../../theme';
 import { playSpinnerTickSound } from '../../services/soundEffects';
 
 interface CircleIconButtonProps {
@@ -59,8 +59,7 @@ export const CircleIconButton: React.FC<CircleIconButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    ...commonStyles.center,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },

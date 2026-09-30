@@ -14,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { Ionicons } from '@expo/vector-icons';
 import { IsometricCubeIllustration } from './IsometricCubeIllustration';
-import { colors } from '../theme/colors';
+import { colors, spacing, radius, fontSizes, fontWeights, commonStyles } from '../theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -114,7 +114,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onStart }) =
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    ...commonStyles.flex1,
     backgroundColor: '#0D0D11',
   },
   ambientGlow: {
@@ -125,11 +125,11 @@ const styles = StyleSheet.create({
     height: height * 0.55,
   },
   safeArea: {
-    flex: 1,
+    ...commonStyles.flex1,
     justifyContent: 'space-between',
   },
   content: {
-    flex: 1,
+    ...commonStyles.flex1,
     paddingHorizontal: 28,
     alignItems: 'center',
     justifyContent: 'space-around',
@@ -137,16 +137,15 @@ const styles = StyleSheet.create({
     paddingBottom: height * 0.04,
   },
   illustrationWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
+    ...commonStyles.center,
+    marginTop: spacing.base,
   },
   textContainer: {
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.lg,
   },
   title: {
-    fontSize: 28,
+    fontSize: fontSizes.headline,
     fontWeight: '300',
     color: '#E6E6EA',
     textAlign: 'center',
@@ -154,45 +153,41 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   boldTitle: {
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontWeight: fontWeights.heavy,
+    color: colors.textPrimary,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: fontSizes.base,
     color: '#8A8A93',
     textAlign: 'center',
     lineHeight: 22,
-    marginTop: 14,
+    marginTop: spacing.xl - 2,
     maxWidth: 300,
   },
   paginationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginVertical: 12,
+    ...commonStyles.rowCenter,
+    gap: spacing.md,
+    marginVertical: spacing.lg,
   },
   dot: {
     width: 4,
     height: 4,
-    borderRadius: 2,
+    borderRadius: radius.xxs,
     backgroundColor: '#6C6C76',
   },
   activeBar: {
     width: 3,
     height: 14,
-    borderRadius: 2,
-    backgroundColor: '#FFFFFF',
+    borderRadius: radius.xxs,
+    backgroundColor: colors.textPrimary,
   },
   startButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    ...commonStyles.rowCenter,
     backgroundColor: colors.primary,
-    paddingVertical: 16,
+    paddingVertical: spacing.xl,
     paddingHorizontal: 36,
-    borderRadius: 32,
-    gap: 10,
+    borderRadius: radius.round + 8,
+    gap: spacing.base,
     width: '68%',
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 6 },
@@ -202,8 +197,8 @@ const styles = StyleSheet.create({
   },
   startButtonText: {
     color: '#000000',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: fontSizes.subtitle,
+    fontWeight: fontWeights.bold,
   },
   arrowIcon: {
     marginLeft: 2,

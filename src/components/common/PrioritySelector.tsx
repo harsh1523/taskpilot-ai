@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Priority } from '../../types/task';
-import { colors } from '../../theme/colors';
+import { colors, spacing, radius, fontSizes, fontWeights, commonStyles } from '../../theme';
 import { playSpinnerTickSound } from '../../services/soundEffects';
 
 export interface PriorityOption {
@@ -117,51 +117,48 @@ export const PrioritySelector: React.FC<PrioritySelectorProps> = ({
 const styles = StyleSheet.create({
   rowContainer: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.md,
   },
   rowButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 14,
+    ...commonStyles.flex1,
+    ...commonStyles.rowCenter,
+    paddingVertical: spacing.base,
+    borderRadius: radius.xl,
     backgroundColor: '#181822',
     borderWidth: 1,
     borderColor: '#262636',
   },
   rowIcon: {
-    marginRight: 5,
+    marginRight: spacing.xs + 1,
   },
   rowText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
   },
   rowTextActive: {
-    fontWeight: '800',
+    fontWeight: fontWeights.heavy,
   },
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing.md,
   },
   pillButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    ...commonStyles.row,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.xxl,
     backgroundColor: '#161620',
     borderWidth: 1,
   },
   pillIcon: {
-    marginRight: 6,
+    marginRight: spacing.sm,
   },
   pillText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
   },
   pillTextActive: {
-    fontWeight: '800',
+    fontWeight: fontWeights.heavy,
   },
 });

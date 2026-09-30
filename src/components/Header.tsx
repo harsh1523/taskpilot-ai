@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
+import { colors, spacing, padding, radius, fontSizes, fontWeights, commonStyles } from '../theme';
 import { playSpinnerTickSound } from '../services/soundEffects';
 import { formatDateLabel } from '../utils/scheduleUtils';
 
@@ -126,88 +126,82 @@ export const Header: React.FC<HeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 10,
+    paddingHorizontal: padding.screenHorizontal,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.base,
   },
   realtimeBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
+    ...commonStyles.rowBetween,
+    marginBottom: spacing.base,
   },
   datePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    ...commonStyles.row,
     backgroundColor: '#16161E',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.xxl,
     borderWidth: 1,
     borderColor: '#262636',
   },
   timePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    ...commonStyles.row,
     backgroundColor: '#16161E',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.xxl,
     borderWidth: 1,
     borderColor: '#262636',
   },
   pillIcon: {
-    marginRight: 6,
+    marginRight: spacing.sm,
   },
   liveClockDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#34D399',
-    marginRight: 6,
+    backgroundColor: colors.success,
+    marginRight: spacing.sm,
   },
   dateText: {
     color: '#D4D4E0',
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
     letterSpacing: 0.3,
   },
   timeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
+    color: colors.textPrimary,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.heavy,
     letterSpacing: 0.5,
   },
   titleRow: {
-    marginBottom: 14,
+    marginBottom: spacing.xl,
   },
   title: {
-    fontSize: 28,
+    fontSize: fontSizes.headline,
     fontWeight: '300',
     color: '#E8E8EE',
     letterSpacing: -0.5,
   },
   boldTitle: {
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontWeight: fontWeights.heavy,
+    color: colors.textPrimary,
   },
   segmentBar: {
     flexDirection: 'row',
-    backgroundColor: '#14141A',
-    borderRadius: 16,
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
     padding: 3,
     borderWidth: 1,
-    borderColor: '#22222E',
-    gap: 4,
+    borderColor: colors.cardBorder,
+    gap: spacing.xs,
   },
   segmentTab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: 13,
-    gap: 6,
+    ...commonStyles.flex1,
+    ...commonStyles.rowCenter,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md + 5,
+    gap: spacing.sm,
   },
   segmentTabActive: {
     backgroundColor: '#20202A',
@@ -219,17 +213,17 @@ const styles = StyleSheet.create({
   },
   segmentLabel: {
     color: '#767686',
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold,
   },
   segmentLabelActive: {
-    color: '#FFFFFF',
-    fontWeight: '800',
+    color: colors.textPrimary,
+    fontWeight: fontWeights.heavy,
   },
   countBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs,
+    borderRadius: radius.md,
     backgroundColor: '#1A1A22',
   },
   countBadgeActive: {
@@ -237,11 +231,11 @@ const styles = StyleSheet.create({
   },
   countBadgeText: {
     color: '#6E6E7E',
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: fontSizes.tiny,
+    fontWeight: fontWeights.bold,
   },
   countBadgeTextActive: {
     color: '#151518',
-    fontWeight: '800',
+    fontWeight: fontWeights.heavy,
   },
 });

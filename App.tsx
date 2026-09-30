@@ -17,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Task, TaskFilter } from './src/types/task';
 import { taskStorage } from './src/services/taskStorage';
-import { colors } from './src/theme/colors';
+import { colors, spacing, padding, radius, fontSizes, fontWeights, commonStyles } from './src/theme';
 import { playSpinnerTickSound, playMacTrashSound } from './src/services/soundEffects';
 import { Header } from './src/components/Header';
 import { TaskItem } from './src/components/TaskItem';
@@ -336,7 +336,7 @@ export default function App() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
+    ...commonStyles.flex1,
     backgroundColor: '#0D0D11',
   },
   ambientGlow: {
@@ -347,40 +347,38 @@ const styles = StyleSheet.create({
     height: 240,
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    ...commonStyles.row,
     backgroundColor: '#1A1A1E',
-    marginHorizontal: 20,
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    borderRadius: 16,
+    marginHorizontal: padding.screenHorizontal,
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.card,
     borderWidth: 1,
     borderColor: '#2A2A34',
     height: 48,
   },
   searchIcon: {
-    marginRight: 10,
+    marginRight: spacing.base,
   },
   searchInput: {
-    flex: 1,
+    ...commonStyles.flex1,
     height: 48,
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
+    color: colors.textPrimary,
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.medium,
   },
   listContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: padding.screenHorizontal,
     paddingBottom: 150,
   },
   centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    ...commonStyles.center,
+    ...commonStyles.flex1,
   },
   loadingText: {
     color: '#8A8A96',
-    marginTop: 10,
-    fontSize: 13,
+    marginTop: spacing.base,
+    fontSize: fontSizes.md,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -393,42 +391,38 @@ const styles = StyleSheet.create({
     height: 76,
     borderRadius: 38,
     backgroundColor: '#1E1E24',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
+    ...commonStyles.center,
+    marginBottom: spacing.xl,
     borderWidth: 1,
     borderColor: '#2C2C36',
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 6,
+    fontSize: fontSizes.titleSm,
+    fontWeight: fontWeights.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
   },
   emptySubtitle: {
-    fontSize: 13,
+    fontSize: fontSizes.md,
     color: '#7E7E8B',
     textAlign: 'center',
     lineHeight: 20,
   },
   bottomDock: {
     position: 'absolute',
-    bottom: 24,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    bottom: spacing.xxxl,
+    left: padding.screenHorizontal,
+    right: padding.screenHorizontal,
+    ...commonStyles.row,
+    gap: spacing.lg,
   },
   createTaskBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    ...commonStyles.flex1,
+    ...commonStyles.rowCenter,
     backgroundColor: colors.primary,
-    paddingVertical: 16,
-    borderRadius: 24,
-    gap: 8,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.round,
+    gap: spacing.md,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
@@ -437,8 +431,8 @@ const styles = StyleSheet.create({
   },
   createTaskBtnText: {
     color: '#151518',
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: fontSizes.subtitle,
+    fontWeight: fontWeights.heavy,
     letterSpacing: 0.2,
   },
   technaVoiceFab: {
@@ -455,8 +449,7 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 27,
-    alignItems: 'center',
-    justifyContent: 'center',
+    ...commonStyles.center,
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.35)',
   },

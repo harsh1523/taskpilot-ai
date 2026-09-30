@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Task } from '../types/task';
-import { colors } from '../theme/colors';
+import { colors, spacing, radius, fontSizes, fontWeights, commonStyles } from '../theme';
 import { playSpinnerTickSound, playMacTrashSound } from '../services/soundEffects';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -241,18 +241,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 const styles = StyleSheet.create({
   swipeContainer: {
     position: 'relative',
-    marginBottom: 10,
-    borderRadius: 18,
+    marginBottom: spacing.base,
+    borderRadius: radius.cardLg,
     overflow: 'hidden',
   },
   swipeBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...commonStyles.absoluteFill,
     backgroundColor: '#DC2626',
-    borderRadius: 18,
+    borderRadius: radius.cardLg,
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
@@ -260,22 +256,21 @@ const styles = StyleSheet.create({
   swipeDeleteAction: {
     width: 78,
     height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    ...commonStyles.center,
     gap: 3,
   },
   swipeDeleteText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
+    color: colors.textPrimary,
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.heavy,
     letterSpacing: 0.3,
   },
   card: {
     backgroundColor: '#15151C',
-    borderRadius: 18,
-    padding: 14,
+    borderRadius: radius.cardLg,
+    padding: spacing.xl - 2,
     borderWidth: 1,
-    borderColor: '#22222E',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.18,
@@ -293,16 +288,15 @@ const styles = StyleSheet.create({
   },
   checkboxTouch: {
     paddingTop: 2,
-    paddingRight: 12,
+    paddingRight: spacing.lg,
   },
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: radius.lg,
     borderWidth: 1.8,
     borderColor: '#4A4A5A',
-    justifyContent: 'center',
-    alignItems: 'center',
+    ...commonStyles.center,
     backgroundColor: 'transparent',
   },
   checkboxChecked: {
@@ -310,43 +304,41 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   textContainer: {
-    flex: 1,
+    ...commonStyles.flex1,
   },
   title: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.bold,
     color: '#F0F0F8',
     lineHeight: 20,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   titleCompleted: {
     color: '#6E6E7E',
     textDecorationLine: 'line-through',
   },
   description: {
-    fontSize: 12,
+    fontSize: fontSizes.sm,
     color: '#848494',
     lineHeight: 17,
-    marginBottom: 8,
+    marginBottom: spacing.md,
   },
   descriptionCompleted: {
     color: '#555562',
   },
   metaRow: {
-    flexDirection: 'row',
+    ...commonStyles.row,
     flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 2,
+    gap: spacing.sm,
+    marginTop: spacing.xxs,
   },
   badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    ...commonStyles.row,
     backgroundColor: '#1D1D26',
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.md,
     paddingVertical: 3,
-    borderRadius: 8,
-    gap: 4,
+    borderRadius: radius.md,
+    gap: spacing.xs,
     borderWidth: 1,
     borderColor: '#282836',
   },
@@ -357,36 +349,35 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: '#A0A0B0',
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.semibold,
   },
   priorityBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.md,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
   },
   priorityBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: fontSizes.tiny,
+    fontWeight: fontWeights.heavy,
     textTransform: 'uppercase',
   },
   voiceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    ...commonStyles.row,
     backgroundColor: 'rgba(248, 168, 120, 0.12)',
     paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: radius.md,
     gap: 3,
   },
   voiceText: {
     color: colors.primary,
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: fontSizes.tiny,
+    fontWeight: fontWeights.bold,
   },
   deleteBtn: {
-    padding: 6,
-    marginLeft: 6,
+    padding: spacing.sm,
+    marginLeft: spacing.sm,
   },
 });
