@@ -31,26 +31,161 @@ export interface AvailableSlot {
 }
 
 /**
- * Parses time strings such as "10 AM", "6:30 pm", "8pm", "11:15 am" into 24-hour hour, minute, and total minutes.
+ * Parses time strings such as "10 AM", "6:30 pm", "8pm", "11:15 am", "06:00 PM", or "18:00" into 24-hour hour, minute, and total minutes.
  */
 export function parseTimeString(text: string): { hour: number; minute: number; isPm: boolean; totalMinutes: number } | null {
   if (!text) return null;
-  const timeMatch = text.match(/\b([1-9]|1[0-2])(?::([0-5]\d))?\s*(am|pm)\b/i);
-  if (!timeMatch) return null;
 
-  let hour = parseInt(timeMatch[1], 10);
-  const minute = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
-  const isPm = timeMatch[3].toLowerCase() === 'pm';
+  // 1. 12-hour AM/PM format (e.g. "06:00 PM", "6:30 pm", "8pm", "11:15 am")
+  const ampmMatch = text.match(/\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(am|pm)\b/i);
+  if (ampmMatch) {
+    let hour = parseInt(ampmMatch[1], 10);
+    const minute = ampmMatch[2] ? parseInt(ampmMatch[2], 10) : 0;
+    const isPm = ampmMatch[3].toLowerCase() === 'pm';
 
-  if (isPm && hour !== 12) hour += 12;
-  if (!isPm && hour === 12) hour = 0;
+    if (isPm && hour !== 12) hour += 12;
+    if (!isPm && hour === 12) hour = 0;
 
-  return {
-    hour,
-    minute,
-    isPm,
-    totalMinutes: hour * 60 + minute,
-  };
+    return {
+      hour,
+      minute,
+      isPm,
+      totalMinutes: hour * 60 + minute,
+    };
+  }
+
+  // 2. 24-hour military format (e.g. "18:00", "09:30")
+  const milMatch = text.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+  if (milMatch) {
+    const hour = parseInt(milMatch[1], 10);
+    const minute = parseInt(milMatch[2], 10);
+    return {
+      hour,
+      minute,
+      isPm: hour >= 12,
+      totalMinutes: hour * 60 + minute,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Extracts start and end minutes from time strings or ranges (e.g. "06:00 PM - 07:00 PM" or "6:00 PM").
+ */
+export function extractTimeRangeFromText(
+  text: string
+): { startMin: number; endMin: number } | null {
+  if (!text) return null;
+
+  const regex = /\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(am|pm)\b/gi;
+  const matches = [...text.matchAll(regex)];
+
+  if (matches.length >= 2) {
+    const start = parseTimeString(matches[0][0]);
+    const end = parseTimeString(matches[1][0]);
+    if (start && end) {
+      let endMinutes = end.totalMinutes;
+      if (endMinutes <= start.totalMinutes) endMinutes += 1440;
+      return { startMin: start.totalMinutes, endMin: endMinutes };
+    }
+  }
+
+  const single = parseTimeString(text);
+  if (single) {
+    return { startMin: single.totalMinutes, endMin: single.totalMinutes + 60 };
+  }
+
+  return null;
+}
+
+/**
+ * Checks if a task's dueDate string matches a target date string or Date object.
+ */
+export function isDateMatch(dueDate: string, targetDate?: string | Date): boolean {
+  if (!targetDate || !dueDate) return true;
+
+  const now = new Date();
+  const todayDay = now.getDate();
+  const todayMonth = now.getMonth();
+
+  const tm = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const tmDay = tm.getDate();
+  const tmMonth = tm.getMonth();
+
+  const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+  function parseDateInfo(input: string | Date) {
+    if (input instanceof Date) {
+      return {
+        day: input.getDate(),
+        month: input.getMonth(),
+        isToday: input.getDate() === todayDay && input.getMonth() === todayMonth,
+        isTomorrow: input.getDate() === tmDay && input.getMonth() === tmMonth,
+      };
+    }
+
+    const str = String(input).trim().toLowerCase();
+    const isToday = /\btoday\b/i.test(str);
+    const isTomorrow = /\btomorrow\b/i.test(str);
+
+    let day: number | undefined;
+    let month: number | undefined;
+
+    const mMatch =
+      str.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s*(\d{1,2})\b/i) ||
+      str.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)/i);
+
+    if (mMatch) {
+      if (isNaN(parseInt(mMatch[1], 10))) {
+        month = monthNames.indexOf(mMatch[1].slice(0, 3).toLowerCase());
+        day = parseInt(mMatch[2], 10);
+      } else {
+        day = parseInt(mMatch[1], 10);
+        month = monthNames.indexOf(mMatch[2].slice(0, 3).toLowerCase());
+      }
+    }
+
+    if (isToday) {
+      day = todayDay;
+      month = todayMonth;
+    } else if (isTomorrow) {
+      day = tmDay;
+      month = tmMonth;
+    }
+
+    return { str, day, month, isToday, isTomorrow };
+  }
+
+  // Extract date portion if separated by • or -
+  let datePart = dueDate;
+  if (dueDate.includes('•')) {
+    datePart = dueDate.split('•')[0].trim();
+  }
+
+  const targetInfo = parseDateInfo(targetDate);
+  const dueInfo = parseDateInfo(datePart);
+
+  // If dueDate does not contain any date terms (e.g. pure time string), match active date
+  if (!dueInfo.isToday && !dueInfo.isTomorrow && dueInfo.day === undefined) {
+    return true;
+  }
+
+  // Exact string match
+  if (dueInfo.str && targetInfo.str && dueInfo.str === targetInfo.str) {
+    return true;
+  }
+
+  // Day & Month match
+  if (dueInfo.day !== undefined && targetInfo.day !== undefined) {
+    return dueInfo.day === targetInfo.day && dueInfo.month === targetInfo.month;
+  }
+
+  // Today / Tomorrow keyword match
+  if (dueInfo.isToday && targetInfo.isToday) return true;
+  if (dueInfo.isTomorrow && targetInfo.isTomorrow) return true;
+
+  return false;
 }
 
 /**
@@ -97,19 +232,25 @@ export function computeTimeRange(startHour: number, durationMinutes: number): Ti
 
 /**
  * Extracts occupied schedule blocks strictly from existing user tasks with a valid dueDate.
- * No static or mock schedule data is injected.
+ * Filters out completed tasks and checks date matching when targetDate is provided.
  */
-export function getOccupiedSchedule(existingTasks: Task[] = []): ScheduleBlock[] {
+export function getOccupiedSchedule(
+  existingTasks: Task[] = [],
+  targetDate?: string | Date
+): ScheduleBlock[] {
   const blocks: ScheduleBlock[] = [];
 
   if (existingTasks && existingTasks.length > 0) {
     existingTasks.forEach((t) => {
+      if (t.isCompleted) return;
       if (!t.dueDate) return;
-      const parsed = parseTimeString(t.dueDate);
-      if (parsed) {
+      if (targetDate && !isDateMatch(t.dueDate, targetDate)) return;
+
+      const range = extractTimeRangeFromText(t.dueDate);
+      if (range) {
         blocks.push({
-          startMin: parsed.totalMinutes,
-          endMin: parsed.totalMinutes + 60,
+          startMin: range.startMin,
+          endMin: range.endMin,
           title: t.title.slice(0, 30),
           taskId: t.id,
           task: t,

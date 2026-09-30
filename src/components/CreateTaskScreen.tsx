@@ -308,8 +308,8 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
 
   // Occupied schedule slots powered by scheduleUtils
   const occupiedSchedule = useMemo(() => {
-    return getOccupiedSchedule(existingTasks);
-  }, [existingTasks]);
+    return getOccupiedSchedule(existingTasks, selectedDate);
+  }, [existingTasks, selectedDate]);
 
   const handleSave = () => {
     const trimmed = taskTitle.trim();

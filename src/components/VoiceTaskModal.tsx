@@ -91,8 +91,8 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
 
   // Occupied blocks and conflict checking powered by scheduleUtils
   const defaultOccupiedSchedule = useMemo(() => {
-    return getOccupiedSchedule(existingTasks);
-  }, [existingTasks]);
+    return getOccupiedSchedule(existingTasks, selectedDate);
+  }, [existingTasks, selectedDate]);
 
   const checkSlotConflictHelper = (startMin: number, durationMin: number = 60) => {
     return checkSlotConflict(startMin, durationMin, defaultOccupiedSchedule);
