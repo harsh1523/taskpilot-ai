@@ -1,6 +1,13 @@
 {
   "name": "taskpilot-ai",
   "version": "1.0.0",
+  "description": "TaskPilot AI - Intelligent Task Management with Techna Voice Assistant & Smart Scheduling",
+  "author": "Harsh",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/harsh1523/taskpilot-ai.git"
+  },
   "main": "index.ts",
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
