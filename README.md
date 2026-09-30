@@ -101,8 +101,10 @@ taskpilot-ai/
 │   │   └── voiceRecognition.ts          # Cross-platform speech-to-text
 │   ├── theme/
 │   │   └── colors.ts                    # Harmonious palette & styling tokens
-│   └── types/
-│       └── task.ts                      # Data models & TypeScript interfaces
+│   ├── types/
+│   │   └── task.ts                      # Data models & TypeScript interfaces
+│   └── utils/
+│       └── scheduleUtils.ts             # Centralized schedule, conflict & date utilities
 ├── App.tsx                 # Root application container & state orchestration
 ├── app.json                # Expo application configuration
 ├── package.json            # Project dependencies & scripts

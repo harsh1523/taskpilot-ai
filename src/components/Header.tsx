@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { playSpinnerTickSound } from '../services/soundEffects';
+import { formatDateLabel } from '../utils/scheduleUtils';
 
 interface HeaderProps {
   totalCount: number;
@@ -29,12 +30,8 @@ export const Header: React.FC<HeaderProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Format real-time Date: Weekday, Day Month Year (e.g., "Mon, 28 Sep 2026")
-  const weekday = currentDateTime.toLocaleDateString('en-US', { weekday: 'short' });
-  const day = currentDateTime.toLocaleDateString('en-US', { day: '2-digit' });
-  const month = currentDateTime.toLocaleDateString('en-US', { month: 'short' });
-  const year = currentDateTime.getFullYear();
-  const formattedDate = `${weekday}, ${day} ${month} ${year}`;
+  // Format real-time Date using centralized date utility
+  const formattedDate = formatDateLabel(currentDateTime, true);
 
   // Format real-time Time with live ticking seconds (e.g., "05:48:22 PM")
   const formattedTime = currentDateTime.toLocaleTimeString('en-US', {

@@ -22,6 +22,13 @@ import { playSpinnerTickSound, speakWithTechna } from '../services/soundEffects'
 import { parseVoiceToTaskForm } from '../services/voiceParser';
 import { TechnaDisplayBorderGlow } from './TechnaDisplayBorderGlow';
 import { voiceRecognition } from '../services/voiceRecognition';
+import {
+  computeTimeRange,
+  getOccupiedSchedule,
+  checkSlotConflict,
+  isSameDay,
+  parseTimeString,
+} from '../utils/scheduleUtils';
 
 interface CreateTaskScreenProps {
   onClose: () => void;
@@ -88,40 +95,7 @@ const baseHours = [
   { hour: 23, period: 'Night' as const },
 ];
 
-function computeTimeRange(startHour: number, durationMinutes: number) {
-  const startMinTotal = startHour * 60;
-  const endMinTotal = startMinTotal + durationMinutes;
 
-  const toAmPm = (totalMinutes: number) => {
-    let h = Math.floor(totalMinutes / 60) % 24;
-    const m = totalMinutes % 60;
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12;
-    if (h === 0) h = 12;
-    const hh = h < 10 ? `0${h}` : `${h}`;
-    const mm = m < 10 ? `0${m}` : `${m}`;
-    return `${hh}:${mm} ${ampm}`;
-  };
-
-  const startTime = toAmPm(startMinTotal);
-  const endTime = toAmPm(endMinTotal);
-  const durLabel =
-    durationMinutes < 60
-      ? `${durationMinutes}m`
-      : durationMinutes % 60 === 0
-      ? `${durationMinutes / 60}h`
-      : `${(durationMinutes / 60).toFixed(1)}h`;
-
-  return {
-    startHour,
-    startTime,
-    endTime,
-    rangeString: `${startTime} - ${endTime}`,
-    displayString: `${startTime} - ${endTime} (${durLabel})`,
-    startMinutes: startMinTotal,
-    endMinutes: endMinTotal,
-  };
-}
 
 const sampleVoicePhrases = [
   'Client feedback due date tomorrow at 6 PM high priority at office',
@@ -331,14 +305,10 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
       filledNames.push(`Due: ${parsed.dateLabel}`);
     }
     if (parsed.timeLabel) {
-      const timeMatch = parsed.timeLabel.match(/\b([1-9]|1[0-2])(?::([0-5]\d))?\s*(am|pm)\b/i);
-      if (timeMatch) {
-        let h = parseInt(timeMatch[1], 10);
-        const isPm = timeMatch[3].toLowerCase() === 'pm';
-        if (isPm && h !== 12) h += 12;
-        if (!isPm && h === 12) h = 0;
-        setSelectedStartHour(h);
-        const range = computeTimeRange(h, selectedDuration);
+      const parsedTime = parseTimeString(parsed.timeLabel);
+      if (parsedTime) {
+        setSelectedStartHour(parsedTime.hour);
+        const range = computeTimeRange(parsedTime.hour, selectedDuration);
         setSelectedTime(range.rangeString);
         autoFilledCount++;
         filledNames.push(range.rangeString);
@@ -471,52 +441,13 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
     });
   }
 
-  const isSameDay = (d1: Date, d2: Date) => {
-    return (
-      d1.getFullYear() === d2.getFullYear() &&
-      d1.getMonth() === d2.getMonth() &&
-      d1.getDate() === d2.getDate()
-    );
-  };
-
-  // Occupied schedule slots on this day
+  // Occupied schedule slots and conflict checking powered by scheduleUtils
   const occupiedSchedule = useMemo(() => {
-    const blocks: { startMin: number; endMin: number; title: string }[] = [
-      { startMin: 9 * 60, endMin: 10 * 60, title: 'Team Sync' },
-      { startMin: 13 * 60, endMin: 14 * 60, title: 'Client Review' },
-      { startMin: 16 * 60, endMin: 17 * 60, title: 'Sprint Retrospective' },
-    ];
-
-    if (existingTasks && existingTasks.length > 0) {
-      existingTasks.forEach((t) => {
-        if (!t.dueDate) return;
-        const timeMatch = t.dueDate.match(/\b([1-9]|1[0-2])(?::([0-5]\d))?\s*(am|pm)\b/i);
-        if (timeMatch) {
-          let h = parseInt(timeMatch[1], 10);
-          const m = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
-          const isPm = timeMatch[3].toLowerCase() === 'pm';
-          if (isPm && h !== 12) h += 12;
-          if (!isPm && h === 12) h = 0;
-          const sMin = h * 60 + m;
-          blocks.push({
-            startMin: sMin,
-            endMin: sMin + 60,
-            title: t.title.slice(0, 20),
-          });
-        }
-      });
-    }
-
-    return blocks;
+    return getOccupiedSchedule(existingTasks);
   }, [existingTasks]);
 
   const isSlotOccupied = (startMin: number, endMin: number) => {
-    for (const b of occupiedSchedule) {
-      if (Math.max(startMin, b.startMin) < Math.min(endMin, b.endMin)) {
-        return { occupied: true, title: b.title };
-      }
-    }
-    return { occupied: false, title: '' };
+    return checkSlotConflict(startMin, endMin - startMin, occupiedSchedule);
   };
 
   const currentSlotRange = useMemo(() => {

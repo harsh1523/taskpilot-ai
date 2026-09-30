@@ -20,6 +20,13 @@ import { playSpinnerTickSound, speakWithTechna } from '../services/soundEffects'
 import { extractSpokenDueDate, parseVoiceToTaskForm, parseSpokenPriority } from '../services/voiceParser';
 import { TechnaDisplayBorderGlow } from './TechnaDisplayBorderGlow';
 import { voiceRecognition } from '../services/voiceRecognition';
+import {
+  getOccupiedSchedule,
+  checkSlotConflict,
+  computeAvailableSlots,
+  computeTimeRange,
+  parseTimeString,
+} from '../utils/scheduleUtils';
 
 interface VoiceTaskModalProps {
   visible: boolean;
@@ -85,57 +92,20 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
   const wave4 = useRef(new Animated.Value(30)).current;
   const wave5 = useRef(new Animated.Value(15)).current;
 
-  // Default occupied blocks for smart scheduling
+  // Occupied blocks and conflict checking powered by scheduleUtils
   const defaultOccupiedSchedule = useMemo(() => {
-    const blocks: { startMin: number; endMin: number; title: string }[] = [
-      { startMin: 9 * 60, endMin: 10 * 60, title: 'Team Sync' },
-      { startMin: 13 * 60, endMin: 14 * 60, title: 'Client Review' },
-      { startMin: 16 * 60, endMin: 17 * 60, title: 'Sprint Retrospective' },
-    ];
-    if (existingTasks && existingTasks.length > 0) {
-      existingTasks.forEach((t) => {
-        if (!t.dueDate) return;
-        const timeMatch = t.dueDate.match(/\b([1-9]|1[0-2])(?::([0-5]\d))?\s*(am|pm)\b/i);
-        if (timeMatch) {
-          let h = parseInt(timeMatch[1], 10);
-          const m = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
-          const isPm = timeMatch[3].toLowerCase() === 'pm';
-          if (isPm && h !== 12) h += 12;
-          if (!isPm && h === 12) h = 0;
-          const sMin = h * 60 + m;
-          blocks.push({ startMin: sMin, endMin: sMin + 60, title: t.title.slice(0, 20) });
-        }
-      });
-    }
-    return blocks;
+    return getOccupiedSchedule(existingTasks);
   }, [existingTasks]);
 
-  // Check slot availability
-  const checkSlotConflict = (startMin: number, durationMin: number = 60) => {
-    const endMin = startMin + durationMin;
-    for (const b of defaultOccupiedSchedule) {
-      if (Math.max(startMin, b.startMin) < Math.min(endMin, b.endMin)) {
-        return { occupied: true, title: b.title };
-      }
-    }
-    return { occupied: false, title: '' };
+  const checkSlotConflictHelper = (startMin: number, durationMin: number = 60) => {
+    return checkSlotConflict(startMin, durationMin, defaultOccupiedSchedule);
   };
 
-  // Compute available free slots
+  // Compute available free slots via centralized utility
   const availableFreeSlots = useMemo(() => {
-    const slots: { startHour: number; rangeString: string }[] = [];
-    for (let h = 6; h <= 22; h++) {
-      const sMin = h * 60;
-      const res = checkSlotConflict(sMin, 60);
-      if (!res.occupied) {
-        const startStr = `${h < 10 ? `0${h}` : h > 12 ? (h - 12 < 10 ? `0${h - 12}` : h - 12) : h}:00 ${h >= 12 ? 'PM' : 'AM'}`;
-        const endH = h + 1;
-        const endStr = `${endH < 10 ? `0${endH}` : endH > 12 ? (endH - 12 < 10 ? `0${endH - 12}` : endH - 12) : endH}:00 ${endH >= 12 ? 'PM' : 'AM'}`;
-        slots.push({ startHour: h, rangeString: `${startStr} - ${endStr}` });
-      }
-    }
-    return slots;
+    return computeAvailableSlots(defaultOccupiedSchedule, 60, 6, 22);
   }, [defaultOccupiedSchedule]);
+
 
   // Reset and auto-start listening on open
   useEffect(() => {
@@ -248,16 +218,9 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
       const dateLabel = fullForm.dateLabel || 'Tomorrow';
       let timeRange = '06:00 PM - 07:00 PM';
       if (fullForm.timeLabel) {
-        const timeMatch = fullForm.timeLabel.match(/\b([1-9]|1[0-2])(?::([0-5]\d))?\s*(am|pm)\b/i);
-        if (timeMatch) {
-          let h = parseInt(timeMatch[1], 10);
-          const isPm = timeMatch[3].toLowerCase() === 'pm';
-          if (isPm && h !== 12) h += 12;
-          if (!isPm && h === 12) h = 0;
-          const startStr = `${h < 10 ? `0${h}` : h > 12 ? (h - 12 < 10 ? `0${h - 12}` : h - 12) : h}:00 ${h >= 12 ? 'PM' : 'AM'}`;
-          const endH = h + 1;
-          const endStr = `${endH < 10 ? `0${endH}` : endH > 12 ? (endH - 12 < 10 ? `0${endH - 12}` : endH - 12) : endH}:00 ${endH >= 12 ? 'PM' : 'AM'}`;
-          timeRange = `${startStr} - ${endStr}`;
+        const parsedTime = parseTimeString(fullForm.timeLabel);
+        if (parsedTime) {
+          timeRange = computeTimeRange(parsedTime.hour, 60).rangeString;
         } else {
           timeRange = fullForm.timeLabel;
         }
@@ -325,24 +288,17 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
 
     // Extract hour
     let hour = 18; // default 6 PM
-    const timeMatch = spoken.match(/\b([1-9]|1[0-2])(?::([0-5]\d))?\s*(am|pm)\b/i);
-    if (timeMatch) {
-      let h = parseInt(timeMatch[1], 10);
-      const isPm = timeMatch[3].toLowerCase() === 'pm';
-      if (isPm && h !== 12) h += 12;
-      if (!isPm && h === 12) h = 0;
-      hour = h;
+    const parsedTime = parseTimeString(spoken);
+    if (parsedTime) {
+      hour = parsedTime.hour;
     } else if (lower.includes('morning') || lower.includes('9 am')) hour = 9;
     else if (lower.includes('afternoon') || lower.includes('2 pm')) hour = 14;
     else if (lower.includes('evening') || lower.includes('6 pm')) hour = 18;
     else if (lower.includes('night') || lower.includes('9 pm')) hour = 21;
 
-    // Check conflict
-    const conflict = checkSlotConflict(hour * 60, 60);
-    const startStr = `${hour < 10 ? `0${hour}` : hour > 12 ? (hour - 12 < 10 ? `0${hour - 12}` : hour - 12) : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`;
-    const endH = hour + 1;
-    const endStr = `${endH < 10 ? `0${endH}` : endH > 12 ? (endH - 12 < 10 ? `0${endH - 12}` : endH - 12) : endH}:00 ${endH >= 12 ? 'PM' : 'AM'}`;
-    const slotStr = `${startStr} - ${endStr}`;
+    // Check conflict via centralized helper
+    const conflict = checkSlotConflictHelper(hour * 60, 60);
+    const slotStr = computeTimeRange(hour, 60).rangeString;
 
     if (conflict.occupied) {
       playSpinnerTickSound(650);
