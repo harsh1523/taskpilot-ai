@@ -23,10 +23,6 @@ TaskPilot AI transforms the everyday productivity workflow with **Techna**, an A
 - **Free Slot Recommendations**: Intelligently computes and recommends open time windows throughout the day.
 - **Always-On Notifications**: Visual confirmation that alerts and reminders are enabled for every created task.
 
-### 🛡️ Pure User-Driven Data (Zero Mock Data)
-- **Zero Static / Demo Data**: No hardcoded mock events or dummy tasks. The calendar and task list reflect only real, user-created data.
-- **Persistent Local Storage**: Powered by `@react-native-async-storage/async-storage` with automatic legacy cache purging and workspace multi-client readiness.
-
 ### 🎨 Modern Dark-Mode & Twilight Aesthetics
 - **Custom Design System**: Deep obsidian background (`#0D0D11`) with warm peach/amber twilight glow gradients.
 - **Real-Time Live Clock & Calendar**: Dynamic header pill displaying current date, month, year, and live ticking seconds.
