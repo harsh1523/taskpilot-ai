@@ -1,6 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { colors, spacing, radius, fontSizes, fontWeights, commonStyles } from '../../theme';
 import { playSpinnerTickSound } from '../../services/soundEffects';
 import {
@@ -37,14 +45,21 @@ const baseHours = [
   { hour: 14, period: 'Afternoon' as const },
   { hour: 15, period: 'Afternoon' as const },
   { hour: 16, period: 'Afternoon' as const },
-  { hour: 17, period: 'Afternoon' as const },
+  { hour: 17, period: 'Evening' as const },
   { hour: 18, period: 'Evening' as const },
   { hour: 19, period: 'Evening' as const },
-  { hour: 20, period: 'Evening' as const },
+  { hour: 20, period: 'Night' as const },
   { hour: 21, period: 'Night' as const },
   { hour: 22, period: 'Night' as const },
-  { hour: 23, period: 'Night' as const },
 ];
+
+const DIAL_SIZE = 240;
+const RADIUS = 84;
+const NODE_SIZE = 36;
+const CENTER = DIAL_SIZE / 2;
+
+// 12 Clock positions from 1 to 12
+const clockHours = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 interface TimeSlotPickerProps {
   selectedStartHour: number;
@@ -63,7 +78,54 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
   onSelectDuration,
   onShiftOccupiedSlot,
 }) => {
+  const [viewMode, setViewMode] = useState<'radial' | 'timeline'>('radial');
   const [timeFilterPeriod, setTimeFilterPeriod] = useState<'All' | 'Morning' | 'Afternoon' | 'Night'>('All');
+
+  const isPm = selectedStartHour >= 12;
+  const current12Hour = selectedStartHour % 12 === 0 ? 12 : selectedStartHour % 12;
+
+  const triggerHaptic = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.selectionAsync().catch(() => {});
+    }
+  };
+
+  // Convert 12h display number (1..12) with current AM/PM to 24h
+  const to24Hour = (h12: number, pm: boolean): number => {
+    if (pm) {
+      return h12 === 12 ? 12 : h12 + 12;
+    }
+    return h12 === 12 ? 0 : h12;
+  };
+
+  // Handle Hour Selection on Dial
+  const handleSelectClockHour = (h12: number) => {
+    playSpinnerTickSound(900);
+    triggerHaptic();
+    const new24H = to24Hour(h12, isPm);
+    const range = computeTimeRange(new24H, selectedDuration);
+    const occ = checkSlotConflict(range.startMinutes, selectedDuration, occupiedSchedule);
+    onSelectSlot({
+      startHour: new24H,
+      rangeString: range.rangeString,
+      isOccupied: occ.occupied,
+    });
+  };
+
+  // Toggle AM / PM
+  const handleToggleMeridiem = (targetPm: boolean) => {
+    if (targetPm === isPm) return;
+    playSpinnerTickSound(950);
+    triggerHaptic();
+    const new24H = to24Hour(current12Hour, targetPm);
+    const range = computeTimeRange(new24H, selectedDuration);
+    const occ = checkSlotConflict(range.startMinutes, selectedDuration, occupiedSchedule);
+    onSelectSlot({
+      startHour: new24H,
+      rangeString: range.rangeString,
+      isOccupied: occ.occupied,
+    });
+  };
 
   const currentSlotRange = useMemo(() => {
     return computeTimeRange(selectedStartHour, selectedDuration);
@@ -105,57 +167,238 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
     });
   }, [allTimeSlots, timeFilterPeriod]);
 
+  // Pointer angle (0° is 12, 90° is 3, 180° is 6, 270° is 9)
+  const pointerAngle = (current12Hour % 12) * 30;
+
   return (
     <View style={styles.container}>
-      {/* 1. Duration Selector Chips */}
-      <View style={styles.durationRow}>
-        <View style={styles.durationHeader}>
-          <Text style={styles.durationLabel}>Duration</Text>
-          <Text style={styles.durationBadge}>
-            {selectedDuration < 60
-              ? `${selectedDuration} mins`
-              : `${(selectedDuration / 60).toFixed(selectedDuration % 60 === 0 ? 0 : 1)} hrs`}
+      {/* 1. Header Toggle: Radial Dial vs Timeline List */}
+      <View style={styles.viewModeToggleRow}>
+        <TouchableOpacity
+          style={[styles.viewModeBtn, viewMode === 'radial' && styles.viewModeBtnActive]}
+          onPress={() => {
+            playSpinnerTickSound(800);
+            triggerHaptic();
+            setViewMode('radial');
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="time"
+            size={14}
+            color={viewMode === 'radial' ? '#151518' : colors.textSecondary}
+            style={{ marginRight: 5 }}
+          />
+          <Text style={[styles.viewModeBtnText, viewMode === 'radial' && styles.viewModeBtnTextActive]}>
+            Radial Dial
           </Text>
-        </View>
+        </TouchableOpacity>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.durationChipsScroll}>
-          {DURATION_OPTIONS.map((opt) => {
-            const isSel = selectedDuration === opt.minutes;
-            return (
-              <TouchableOpacity
-                key={opt.minutes}
-                style={[styles.durationChip, isSel && styles.durationChipSelected]}
-                onPress={() => onSelectDuration(opt.minutes)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.durationChipText, isSel && styles.durationChipTextSelected]}>
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+        <TouchableOpacity
+          style={[styles.viewModeBtn, viewMode === 'timeline' && styles.viewModeBtnActive]}
+          onPress={() => {
+            playSpinnerTickSound(800);
+            triggerHaptic();
+            setViewMode('timeline');
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="list"
+            size={14}
+            color={viewMode === 'timeline' ? '#151518' : colors.textSecondary}
+            style={{ marginRight: 5 }}
+          />
+          <Text style={[styles.viewModeBtnText, viewMode === 'timeline' && styles.viewModeBtnTextActive]}>
+            Timeline List
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {/* 2. Occupied Alert, Shift Option & Alternative Slot Suggestions */}
+      {/* 2. Duration Selector Chips */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionLabel}>Session Duration</Text>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.durationScroll}
+      >
+        {DURATION_OPTIONS.map((opt) => {
+          const isSelected = selectedDuration === opt.minutes;
+          return (
+            <TouchableOpacity
+              key={opt.minutes}
+              style={[styles.durationChip, isSelected && styles.durationChipSelected]}
+              onPress={() => {
+                playSpinnerTickSound(850);
+                triggerHaptic();
+                onSelectDuration(opt.minutes);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.durationChipText, isSelected && styles.durationChipTextSelected]}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* 3. RADIAL CLOCK DIAL VIEW */}
+      {viewMode === 'radial' && (
+        <View style={styles.radialCard}>
+          {/* AM / PM Segmented Capsule Switcher */}
+          <View style={styles.meridiemContainer}>
+            <TouchableOpacity
+              style={[styles.meridiemBtn, !isPm && styles.meridiemBtnActive]}
+              onPress={() => handleToggleMeridiem(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.meridiemBtnText, !isPm && styles.meridiemBtnTextActive]}>
+                AM
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.meridiemBtn, isPm && styles.meridiemBtnActive]}
+              onPress={() => handleToggleMeridiem(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.meridiemBtnText, isPm && styles.meridiemBtnTextActive]}>
+                PM
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Interactive Clock Face Ring */}
+          <View style={styles.clockDialWrapper}>
+            {/* Center Pointer Laser Hand */}
+            <View
+              style={[
+                styles.pointerHandWrapper,
+                { transform: [{ rotate: `${pointerAngle}deg` }] },
+              ]}
+              pointerEvents="none"
+            >
+              <View style={styles.pointerHandLine} />
+              <View style={styles.pointerHandTip} />
+            </View>
+
+            {/* Glowing Center Hub Disc */}
+            <View style={styles.clockCenterHub} pointerEvents="none">
+              <Text style={styles.centerTimeText}>
+                {String(current12Hour).padStart(2, '0')}:00
+              </Text>
+              <View style={styles.centerMeridiemTag}>
+                <View
+                  style={[
+                    styles.centerStatusPip,
+                    { backgroundColor: currentSlotOccupied.occupied ? '#EF4444' : colors.success },
+                  ]}
+                />
+                <Text style={styles.centerMeridiemText}>{isPm ? 'PM' : 'AM'}</Text>
+              </View>
+            </View>
+
+            {/* 12 Interactive Radial Hour Nodes */}
+            {clockHours.map((h) => {
+              const isSelected = current12Hour === h;
+              const angle = ((h % 12) * 30 - 90) * (Math.PI / 180);
+              const nodeLeft = CENTER + RADIUS * Math.cos(angle) - NODE_SIZE / 2;
+              const nodeTop = CENTER + RADIUS * Math.sin(angle) - NODE_SIZE / 2;
+
+              // Check if this hour is occupied
+              const h24 = to24Hour(h, isPm);
+              const nodeConflict = checkSlotConflict(h24 * 60, selectedDuration, occupiedSchedule);
+              const isOccupied = nodeConflict.occupied;
+
+              return (
+                <TouchableOpacity
+                  key={`node_${h}`}
+                  style={[
+                    styles.clockNode,
+                    { left: nodeLeft, top: nodeTop },
+                    isSelected && styles.clockNodeSelected,
+                    isOccupied && !isSelected && styles.clockNodeOccupied,
+                  ]}
+                  onPress={() => handleSelectClockHour(h)}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.clockNodeText,
+                      isSelected && styles.clockNodeTextSelected,
+                      isOccupied && !isSelected && styles.clockNodeTextOccupied,
+                    ]}
+                  >
+                    {h}
+                  </Text>
+                  {isOccupied && (
+                    <View
+                      style={[
+                        styles.nodeOccupiedDot,
+                        isSelected && { backgroundColor: '#7F1D1D' },
+                      ]}
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Current Selection Status Bar */}
+          <View style={styles.slotRangeBanner}>
+            <Ionicons
+              name={currentSlotOccupied.occupied ? 'alert-circle' : 'checkmark-circle'}
+              size={16}
+              color={currentSlotOccupied.occupied ? '#F87171' : colors.success}
+              style={{ marginRight: 6 }}
+            />
+            <Text style={styles.slotRangeBannerText}>
+              {currentSlotRange.displayString}
+            </Text>
+            <View
+              style={[
+                styles.slotStatusTag,
+                {
+                  backgroundColor: currentSlotOccupied.occupied
+                    ? 'rgba(239, 68, 68, 0.16)'
+                    : 'rgba(52, 211, 153, 0.16)',
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.slotStatusTagText,
+                  { color: currentSlotOccupied.occupied ? '#EF4444' : colors.success },
+                ]}
+              >
+                {currentSlotOccupied.occupied ? 'Occupied' : 'Available'}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* 4. CONFLICT DETECTION & ONE-TAP SHIFT CARD */}
       {currentSlotOccupied.occupied && (
         <View style={styles.occupiedAlertCard}>
           <View style={styles.occupiedAlertHeader}>
-            <Ionicons name="alert-circle" size={17} color="#F87171" style={{ marginRight: 6 }} />
+            <Ionicons name="warning" size={17} color="#F87171" style={{ marginRight: 6 }} />
             <Text style={styles.occupiedAlertTitle}>
-              Slot Occupied ({currentSlotOccupied.title})
+              Slot Occupied by &ldquo;{currentSlotOccupied.title}&rdquo;
             </Text>
           </View>
+
           <Text style={styles.occupiedAlertSub}>
-            "{currentSlotRange.rangeString}" is already booked. You can shift the occupied task or choose another slot:
+            This time overlaps with an existing task on this date. You can shift it to the next free slot automatically.
           </Text>
 
-          {/* Option to Shift the Occupied Task to Next Free Slot */}
-          {nextSlotForShift && currentSlotOccupied.conflictingTaskId && onShiftOccupiedSlot && (
+          {nextSlotForShift && onShiftOccupiedSlot && currentSlotOccupied.conflictingTaskId && (
             <TouchableOpacity
               style={styles.shiftSlotBtn}
               onPress={() => {
-                playSpinnerTickSound(1050);
                 onShiftOccupiedSlot(
                   currentSlotOccupied.conflictingTaskId!,
                   nextSlotForShift.rangeString,
@@ -168,175 +411,433 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
                 <Ionicons name="swap-horizontal" size={16} color="#151518" />
               </View>
               <View style={styles.shiftSlotBtnContent}>
-                <Text style={styles.shiftSlotBtnTitle} numberOfLines={1}>
-                  Shift "{currentSlotOccupied.title}"
+                <Text style={styles.shiftSlotBtnTitle}>
+                  Shift &ldquo;{currentSlotOccupied.title}&rdquo; & Take This Slot
                 </Text>
                 <Text style={styles.shiftSlotBtnSub}>
-                  Move to {nextSlotForShift.rangeString} & keep this slot
+                  Move existing task to {nextSlotForShift.rangeString}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.primary} />
             </TouchableOpacity>
           )}
 
-          {/* Alternative Slots Carousel */}
-          <Text style={styles.alternativeSlotsHeader}>Or pick an open slot:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.availableSlotsScroll}>
-            {availableSlots.slice(0, 5).map((avSlot) => (
+          {/* Quick Alternative Available Slots */}
+          <Text style={styles.alternativeSlotsHeader}>Or pick an available slot:</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.availableSlotsScroll}
+          >
+            {availableSlots.slice(0, 5).map((slot) => (
               <TouchableOpacity
-                key={avSlot.rangeString}
+                key={slot.rangeString}
                 style={styles.availableSlotChip}
-                onPress={() => onSelectSlot(avSlot)}
+                onPress={() => {
+                  playSpinnerTickSound(900);
+                  triggerHaptic();
+                  onSelectSlot({
+                    startHour: slot.startHour,
+                    rangeString: slot.rangeString,
+                    isOccupied: false,
+                  });
+                }}
                 activeOpacity={0.8}
               >
-                <Ionicons name="sparkles" size={12} color="#151518" style={{ marginRight: 4 }} />
-                <Text style={styles.availableSlotChipText}>{avSlot.rangeString}</Text>
+                <Ionicons name="time-outline" size={13} color="#151518" style={{ marginRight: 4 }} />
+                <Text style={styles.availableSlotChipText}>{slot.rangeString}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
       )}
 
-      {/* 3. Period Filter Tabs */}
-      <View style={styles.periodFilterRow}>
-        {(['All', 'Morning', 'Afternoon', 'Night'] as const).map((period) => {
-          const isAct = timeFilterPeriod === period;
-          return (
-            <TouchableOpacity
-              key={period}
-              style={[styles.periodTab, isAct && styles.periodTabActive]}
-              onPress={() => {
-                playSpinnerTickSound(750);
-                setTimeFilterPeriod(period);
-              }}
-            >
-              <Text style={[styles.periodTabText, isAct && styles.periodTabTextActive]}>
-                {period}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* 4. Time Slots Grid */}
-      <View style={styles.timeSlotsGrid}>
-        {filteredTimeSlots.map((item) => {
-          const isSelected = selectedStartHour === item.startHour;
-          return (
-            <TouchableOpacity
-              key={item.startHour}
-              style={[
-                styles.timeSlotChip,
-                isSelected && styles.timeSlotChipSelected,
-                item.isOccupied && !isSelected && styles.timeSlotChipOccupied,
-              ]}
-              onPress={() => onSelectSlot(item)}
-              activeOpacity={0.75}
-            >
-              <View style={styles.timeSlotRowTop}>
-                <Text
-                  style={[
-                    styles.timeSlotChipText,
-                    isSelected && styles.timeSlotChipTextSelected,
-                    item.isOccupied && !isSelected && styles.timeSlotChipTextOccupied,
-                  ]}
+      {/* 5. TIMELINE LIST VIEW */}
+      {viewMode === 'timeline' && (
+        <View style={styles.timelineContainer}>
+          {/* Period Filter Tabs */}
+          <View style={styles.periodFilterRow}>
+            {(['All', 'Morning', 'Afternoon', 'Night'] as const).map((period) => {
+              const isActive = timeFilterPeriod === period;
+              return (
+                <TouchableOpacity
+                  key={period}
+                  style={[styles.periodTab, isActive && styles.periodTabActive]}
+                  onPress={() => {
+                    playSpinnerTickSound(750);
+                    triggerHaptic();
+                    setTimeFilterPeriod(period);
+                  }}
+                  activeOpacity={0.7}
                 >
-                  {item.rangeString}
-                </Text>
-              </View>
-              <View style={styles.timeSlotStatusRow}>
-                {item.isOccupied ? (
-                  <View style={styles.occupiedTag}>
-                    <View style={styles.redDot} />
+                  <Text style={[styles.periodTabText, isActive && styles.periodTabTextActive]}>
+                    {period}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Vertical Slot Items */}
+          <View style={styles.timeSlotsGrid}>
+            {filteredTimeSlots.map((opt) => {
+              const isSelected = selectedStartHour === opt.startHour;
+              return (
+                <TouchableOpacity
+                  key={opt.rangeString}
+                  style={[
+                    styles.timeSlotChip,
+                    isSelected && styles.timeSlotChipSelected,
+                    opt.isOccupied && !isSelected && styles.timeSlotChipOccupied,
+                  ]}
+                  onPress={() => {
+                    playSpinnerTickSound(opt.isOccupied ? 650 : 900);
+                    triggerHaptic();
+                    onSelectSlot({
+                      startHour: opt.startHour,
+                      rangeString: opt.rangeString,
+                      isOccupied: opt.isOccupied,
+                    });
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <View style={styles.timeSlotRowTop}>
+                    <Ionicons
+                      name={isSelected ? 'time' : 'time-outline'}
+                      size={15}
+                      color={
+                        isSelected
+                          ? '#151518'
+                          : opt.isOccupied
+                          ? '#F87171'
+                          : '#9A9AA6'
+                      }
+                      style={{ marginRight: 8 }}
+                    />
                     <Text
                       style={[
-                        styles.occupiedTagText,
-                        isSelected && styles.occupiedTagTextSelected,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {item.occupiedTitle || 'Busy'}
-                    </Text>
-                  </View>
-                ) : (
-                  <View style={styles.availableTag}>
-                    <View style={[styles.greenDot, isSelected && styles.greenDotSelected]} />
-                    <Text
-                      style={[
-                        styles.availableTagText,
-                        isSelected && styles.availableTagTextSelected,
+                        styles.timeSlotChipText,
+                        isSelected && styles.timeSlotChipTextSelected,
+                        opt.isOccupied && !isSelected && styles.timeSlotChipTextOccupied,
                       ]}
                     >
-                      Available
+                      {opt.rangeString}
                     </Text>
                   </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+
+                  <View style={styles.timeSlotStatusRow}>
+                    {opt.isOccupied ? (
+                      <View style={styles.occupiedTag}>
+                        <View style={styles.redDot} />
+                        <Text
+                          style={[
+                            styles.occupiedTagText,
+                            isSelected && styles.occupiedTagTextSelected,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {opt.occupiedTitle || 'Occupied'}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.availableTag}>
+                        <View style={[styles.greenDot, isSelected && styles.greenDotSelected]} />
+                        <Text
+                          style={[
+                            styles.availableTagText,
+                            isSelected && styles.availableTagTextSelected,
+                          ]}
+                        >
+                          Free
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 8,
+    paddingTop: spacing.sm,
   },
-  durationRow: {
-    marginBottom: 14,
+  viewModeToggleRow: {
+    ...commonStyles.row,
+    backgroundColor: 'rgba(22, 22, 32, 0.9)',
+    borderRadius: radius.card,
+    padding: 3,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  durationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+  viewModeBtn: {
+    ...commonStyles.flex1,
+    ...commonStyles.rowCenter,
+    paddingVertical: spacing.md,
+    borderRadius: radius.lg,
   },
-  durationLabel: {
-    color: '#8A8A9E',
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+  viewModeBtnActive: {
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  viewModeBtnText: {
+    color: '#8A8A9A',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+  },
+  viewModeBtnTextActive: {
+    color: '#151518',
+    fontWeight: fontWeights.heavy,
+  },
+  sectionHeader: {
+    marginBottom: spacing.sm,
+  },
+  sectionLabel: {
+    color: '#A0A0B2',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
     letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  durationBadge: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  durationChipsScroll: {
-    gap: 8,
-    paddingVertical: 2,
+  durationScroll: {
+    gap: spacing.sm,
+    paddingBottom: spacing.md,
   },
   durationChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: '#161622',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.card,
+    backgroundColor: 'rgba(26, 26, 36, 0.85)',
     borderWidth: 1,
-    borderColor: '#242434',
+    borderColor: 'rgba(255, 255, 255, 0.07)',
   },
   durationChipSelected: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 3,
   },
   durationChipText: {
-    color: '#9E9EB2',
-    fontSize: 12,
-    fontWeight: '700',
+    color: '#D4D4E0',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
   },
   durationChipTextSelected: {
     color: '#151518',
-    fontWeight: '800',
+    fontWeight: fontWeights.heavy,
   },
-  occupiedAlertCard: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 14,
+  // Radial Dial Glass Card
+  radialCard: {
+    backgroundColor: 'rgba(20, 20, 28, 0.88)',
+    borderRadius: radius.cardLg + 4,
+    borderWidth: 1.2,
+    borderColor: 'rgba(248, 168, 120, 0.22)',
+    padding: spacing.lg,
+    alignItems: 'center',
+    marginTop: spacing.xs,
+    marginBottom: spacing.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  meridiemContainer: {
+    ...commonStyles.row,
+    backgroundColor: 'rgba(26, 26, 38, 0.95)',
+    borderRadius: radius.full,
+    padding: 3,
+    marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.32)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  meridiemBtn: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radius.full,
+  },
+  meridiemBtnActive: {
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  meridiemBtnText: {
+    color: '#8E8E9E',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+  },
+  meridiemBtnTextActive: {
+    color: '#151518',
+    fontWeight: fontWeights.heavy,
+  },
+  // Circular Dial Face
+  clockDialWrapper: {
+    width: DIAL_SIZE,
+    height: DIAL_SIZE,
+    borderRadius: DIAL_SIZE / 2,
+    backgroundColor: 'rgba(14, 14, 20, 0.9)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(248, 168, 120, 0.2)',
+    position: 'relative',
+    ...commonStyles.center,
+  },
+  // Clock pointer line
+  pointerHandWrapper: {
+    position: 'absolute',
+    width: DIAL_SIZE,
+    height: DIAL_SIZE,
+    ...commonStyles.center,
+  },
+  pointerHandLine: {
+    position: 'absolute',
+    top: 36,
+    width: 2.5,
+    height: RADIUS - 18,
+    backgroundColor: colors.primary,
+    borderRadius: 1,
+    opacity: 0.8,
+  },
+  pointerHandTip: {
+    position: 'absolute',
+    top: 30,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+  },
+  // Center Hub
+  clockCenterHub: {
+    width: 82,
+    height: 82,
+    borderRadius: 41,
+    backgroundColor: 'rgba(26, 26, 36, 0.96)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(248, 168, 120, 0.3)',
+    ...commonStyles.center,
+    zIndex: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  centerTimeText: {
+    color: colors.textPrimary,
+    fontSize: fontSizes.titleSm,
+    fontWeight: fontWeights.heavy,
+    letterSpacing: -0.5,
+  },
+  centerMeridiemTag: {
+    ...commonStyles.rowCenter,
+    marginTop: 2,
+  },
+  centerStatusPip: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    marginRight: 4,
+  },
+  centerMeridiemText: {
+    color: colors.primary,
+    fontSize: fontSizes.tiny,
+    fontWeight: fontWeights.bold,
+  },
+  // 12 Clock Nodes
+  clockNode: {
+    position: 'absolute',
+    width: NODE_SIZE,
+    height: NODE_SIZE,
+    borderRadius: NODE_SIZE / 2,
+    backgroundColor: 'rgba(30, 30, 42, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    ...commonStyles.center,
+    zIndex: 5,
+  },
+  clockNodeSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  clockNodeOccupied: {
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+  },
+  clockNodeText: {
+    color: '#D4D4E2',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+  },
+  clockNodeTextSelected: {
+    color: '#151518',
+    fontWeight: fontWeights.heavy,
+  },
+  clockNodeTextOccupied: {
+    color: '#FCA5A5',
+  },
+  nodeOccupiedDot: {
+    position: 'absolute',
+    top: 3,
+    right: 4,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#EF4444',
+  },
+  slotRangeBanner: {
+    ...commonStyles.rowCenter,
+    backgroundColor: 'rgba(24, 24, 34, 0.8)',
+    borderRadius: radius.card,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    marginTop: spacing.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    width: '100%',
+    justifyContent: 'space-between',
+  },
+  slotRangeBannerText: {
+    color: colors.textPrimary,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
+  },
+  slotStatusTag: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+  },
+  slotStatusTagText: {
+    fontSize: fontSizes.tiny,
+    fontWeight: fontWeights.bold,
+  },
+  // Occupied alert card
+  occupiedAlertCard: {
+    backgroundColor: 'rgba(239, 68, 68, 0.09)',
+    borderWidth: 1.2,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    borderRadius: radius.cardLg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
   },
   occupiedAlertHeader: {
     ...commonStyles.row,
@@ -355,7 +856,7 @@ const styles = StyleSheet.create({
   },
   shiftSlotBtn: {
     ...commonStyles.row,
-    backgroundColor: '#1E1B26',
+    backgroundColor: 'rgba(28, 24, 36, 0.95)',
     borderWidth: 1,
     borderColor: 'rgba(248, 168, 120, 0.45)',
     borderRadius: radius.lg,
@@ -406,6 +907,10 @@ const styles = StyleSheet.create({
     color: '#151518',
     fontSize: fontSizes.xs,
     fontWeight: fontWeights.heavy,
+  },
+  // Timeline list view
+  timelineContainer: {
+    marginTop: spacing.sm,
   },
   periodFilterRow: {
     flexDirection: 'row',
