@@ -17,10 +17,15 @@ TaskPilot AI transforms the everyday productivity workflow with **Techna**, an A
 - **Animated Techna Orb**: Vibrant ambient glowing aura, pulsing animations, and live audio frequency wave visualization.
 - **Voice Feedback & Synthesis**: Speaks back confirmations and prompts using speech synthesis.
 
-### 📅 Smart Conflict Detection & Scheduling
-- **Automatic Collision Checking**: Detects if your requested time slot overlaps with an existing task or scheduled event.
-- **Free Slot Recommendations**: Suggests available time windows if your desired slot is occupied.
+### 📅 Smart Scheduling & Conflict Resolution
+- **Automatic Collision Checking**: Detects if your requested time slot overlaps with an existing task.
+- **🔄 Shift Occupied Slot**: If your desired time slot is already taken, you can either pick from suggested alternative slots or **shift the occupied task** to the next available free slot with a single tap or voice command (*"shift"*, *"move it"*).
+- **Free Slot Recommendations**: Intelligently computes and recommends open time windows throughout the day.
 - **Always-On Notifications**: Visual confirmation that alerts and reminders are enabled for every created task.
+
+### 🛡️ Pure User-Driven Data (Zero Mock Data)
+- **Zero Static / Demo Data**: No hardcoded mock events or dummy tasks. The calendar and task list reflect only real, user-created data.
+- **Persistent Local Storage**: Powered by `@react-native-async-storage/async-storage` with automatic legacy cache purging and workspace multi-client readiness.
 
 ### 🎨 Modern Dark-Mode & Twilight Aesthetics
 - **Custom Design System**: Deep obsidian background (`#0D0D11`) with warm peach/amber twilight glow gradients.
