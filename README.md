@@ -81,8 +81,14 @@ TaskPilot AI transforms the everyday productivity workflow with **Techna**, an A
 taskpilot-ai/
 ├── assets/                 # App icons, splash screens, and images
 ├── src/
-│   ├── components/         # Reusable UI components & modals
-│   │   ├── CreateTaskModal.tsx          # Comprehensive task creation modal
+│   ├── components/         # UI components & screens
+│   │   ├── common/             # Reusable design system atoms
+│   │   │   ├── CalendarPickerView.tsx   # Interactive month matrix & jump presets
+│   │   │   ├── CircleIconButton.tsx     # Standardized acoustic circle icon button
+│   │   │   ├── PrioritySelector.tsx     # Reusable priority pills & selector
+│   │   │   ├── TechnaOrb.tsx            # Animated glowing orb & soundwave visualizer
+│   │   │   └── TimeSlotPicker.tsx       # Duration chips & slot collision detector
+│   │   ├── CreateTaskModal.tsx          # Task creation modal container
 │   │   ├── CreateTaskScreen.tsx         # Detailed task customization screen
 │   │   ├── DateCapsulePicker.tsx        # Horizontal date strip picker
 │   │   ├── Header.tsx                   # Live real-time clock & filter segment

@@ -20,6 +20,9 @@ import { playSpinnerTickSound, speakWithTechna } from '../services/soundEffects'
 import { extractSpokenDueDate, parseVoiceToTaskForm, parseSpokenPriority } from '../services/voiceParser';
 import { TechnaDisplayBorderGlow } from './TechnaDisplayBorderGlow';
 import { voiceRecognition } from '../services/voiceRecognition';
+import { TechnaOrb } from './common/TechnaOrb';
+import { PrioritySelector } from './common/PrioritySelector';
+import { CircleIconButton } from './common/CircleIconButton';
 import {
   getOccupiedSchedule,
   checkSlotConflict,
@@ -36,13 +39,6 @@ interface VoiceTaskModalProps {
 }
 
 type TechnaStep = 'task' | 'time' | 'priority' | 'done';
-
-const priorityChoices: { key: Priority; label: string; color: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: 'urgent', label: 'Urgent', color: '#EF4444', icon: 'flame' },
-  { key: 'high', label: 'High', color: '#F97316', icon: 'alert-circle' },
-  { key: 'medium', label: 'Medium', color: '#F8A878', icon: 'time' },
-  { key: 'low', label: 'Low', color: '#34D399', icon: 'leaf' },
-];
 
 const sampleTaskPrompts = [
   'Prepare marketing launch budget',
@@ -83,15 +79,6 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
   const [selectedPriority, setSelectedPriority] = useState<Priority>('high');
   const [priorityDone, setPriorityDone] = useState(false);
 
-  // Animation values for Techna Orb & Soundwaves
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const glowAnim = useRef(new Animated.Value(0.4)).current;
-  const wave1 = useRef(new Animated.Value(12)).current;
-  const wave2 = useRef(new Animated.Value(24)).current;
-  const wave3 = useRef(new Animated.Value(18)).current;
-  const wave4 = useRef(new Animated.Value(30)).current;
-  const wave5 = useRef(new Animated.Value(15)).current;
-
   // Occupied blocks and conflict checking powered by scheduleUtils
   const defaultOccupiedSchedule = useMemo(() => {
     return getOccupiedSchedule(existingTasks);
@@ -105,7 +92,6 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
   const availableFreeSlots = useMemo(() => {
     return computeAvailableSlots(defaultOccupiedSchedule, 60, 6, 22);
   }, [defaultOccupiedSchedule]);
-
 
   // Reset and auto-start listening on open
   useEffect(() => {
@@ -123,7 +109,6 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
       setVoiceInputText('');
       setMicStatusMessage(null);
 
-      startTechnaAnimations();
       speakWithTechna("I'm listening. Tell me your task name, date and time.");
       startSpeechRecognition();
     } else {
@@ -133,42 +118,6 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
       stopSpeechRecognition();
     };
   }, [visible]);
-
-  // Techna Pulsing & Wave Animations
-  const startTechnaAnimations = () => {
-    Animated.loop(
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.15, duration: 800, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-        ]),
-        Animated.sequence([
-          Animated.timing(glowAnim, { toValue: 0.9, duration: 800, useNativeDriver: true }),
-          Animated.timing(glowAnim, { toValue: 0.35, duration: 800, useNativeDriver: true }),
-        ]),
-        Animated.sequence([
-          Animated.timing(wave1, { toValue: 34, duration: 240, useNativeDriver: false }),
-          Animated.timing(wave1, { toValue: 8, duration: 240, useNativeDriver: false }),
-        ]),
-        Animated.sequence([
-          Animated.timing(wave2, { toValue: 42, duration: 280, useNativeDriver: false }),
-          Animated.timing(wave2, { toValue: 12, duration: 280, useNativeDriver: false }),
-        ]),
-        Animated.sequence([
-          Animated.timing(wave3, { toValue: 36, duration: 220, useNativeDriver: false }),
-          Animated.timing(wave3, { toValue: 14, duration: 220, useNativeDriver: false }),
-        ]),
-        Animated.sequence([
-          Animated.timing(wave4, { toValue: 44, duration: 260, useNativeDriver: false }),
-          Animated.timing(wave4, { toValue: 10, duration: 260, useNativeDriver: false }),
-        ]),
-        Animated.sequence([
-          Animated.timing(wave5, { toValue: 30, duration: 300, useNativeDriver: false }),
-          Animated.timing(wave5, { toValue: 12, duration: 300, useNativeDriver: false }),
-        ]),
-      ])
-    ).start();
-  };
 
   // Cross-Platform Speech Recognition Starter
   const startSpeechRecognition = async () => {
@@ -388,46 +337,21 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
               <View style={[styles.technaLiveDot, !isListening && styles.technaLiveDotInactive]} />
               <Text style={styles.technaTitleText}>Techna AI Voice Assistant</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
-              <Ionicons name="close" size={20} color="#8A8A9C" />
-            </TouchableOpacity>
+            <CircleIconButton
+              icon="close"
+              size={32}
+              iconSize={18}
+              color="#8A8A9C"
+              backgroundColor="transparent"
+              onPress={onClose}
+            />
           </View>
 
-          {/* Central Techna Animated Glowing Orb (Interactive Button) */}
-          <View style={styles.technaOrbContainer}>
-            <Animated.View
-              style={[
-                styles.technaAuraRing,
-                { transform: [{ scale: pulseAnim }], opacity: isListening ? glowAnim : 0.2 },
-              ]}
-            />
-            <TouchableOpacity
-              onPress={() => {
-                playSpinnerTickSound(isListening ? 700 : 1000);
-                if (isListening) {
-                  stopSpeechRecognition();
-                } else {
-                  startSpeechRecognition();
-                }
-              }}
-              activeOpacity={0.82}
-            >
-              <LinearGradient
-                colors={['#38BDF8', '#818CF8', '#C084FC', '#F472B6', '#FB923C']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.technaOrbCore}
-              >
-                <View style={styles.soundWaveGroup}>
-                  <Animated.View style={[styles.soundWaveBar, { height: isListening ? wave1 : 10 }]} />
-                  <Animated.View style={[styles.soundWaveBar, { height: isListening ? wave2 : 16 }]} />
-                  <Animated.View style={[styles.soundWaveBar, { height: isListening ? wave3 : 12 }]} />
-                  <Animated.View style={[styles.soundWaveBar, { height: isListening ? wave4 : 18 }]} />
-                  <Animated.View style={[styles.soundWaveBar, { height: isListening ? wave5 : 8 }]} />
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
+          {/* Central Techna Animated Glowing Orb (Reusable Component) */}
+          <TechnaOrb
+            isListening={isListening}
+            onPress={() => (isListening ? stopSpeechRecognition() : startSpeechRecognition())}
+          />
 
           {/* Techna Voice & Dictation Bar with Instant Keyboard Mic Support */}
           <View style={[styles.voiceInputCapsule, isListening && styles.voiceInputCapsuleActive]}>
@@ -660,25 +584,15 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
             </View>
           )}
 
-          {/* STEP 3 CONTROLS (Priority Selection) */}
+          {/* STEP 3 CONTROLS (Priority Selection via Reusable PrioritySelector) */}
           {currentStep === 'priority' && (
             <View style={styles.interactiveBox}>
               <Text style={styles.promptTitle}>Say or tap priority:</Text>
-              <View style={styles.priorityGrid}>
-                {priorityChoices.map((pChoice) => (
-                  <TouchableOpacity
-                    key={pChoice.key}
-                    style={[styles.priorityPill, { borderColor: pChoice.color }]}
-                    onPress={() => handlePrioritySelected(pChoice.key)}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name={pChoice.icon} size={15} color={pChoice.color} style={{ marginRight: 6 }} />
-                    <Text style={[styles.priorityPillText, { color: pChoice.color }]}>
-                      {pChoice.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <PrioritySelector
+                selectedPriority={selectedPriority}
+                onSelectPriority={handlePrioritySelected}
+                variant="grid"
+              />
             </View>
           )}
 
@@ -765,43 +679,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  technaOrbContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 90,
-    marginTop: 2,
-    marginBottom: 12,
-  },
-  technaAuraRing: {
-    position: 'absolute',
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: 'rgba(168, 85, 247, 0.28)',
-  },
-  technaOrbCore: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#EC4899',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.45,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  soundWaveGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    height: 36,
-  },
-  soundWaveBar: {
-    width: 3,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 2,
-  },
+
   voiceInputCapsule: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1027,25 +905,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
   },
-  priorityGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  priorityPill: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1E1E28',
-    paddingVertical: 9,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  priorityPillText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
+
   celebrationBox: {
     alignItems: 'center',
     justifyContent: 'center',

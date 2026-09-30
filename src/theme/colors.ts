@@ -41,6 +41,21 @@ export const colors = {
   warning: '#FBBF24',
   danger: '#F87171',
 
+  // Additional surface & card tokens
+  card: '#14141A',
+  cardAlt: '#16161F',
+  cardBorder: '#22222E',
+  inputBg: '#1A1A1E',
+  border: '#242432',
+  divider: '#1E1E28',
+
+  // Gradients
+  gradients: {
+    ambient: ['rgba(248, 168, 120, 0.14)', 'rgba(217, 126, 78, 0.04)', 'transparent'] as const,
+    techna: ['#A855F7', '#EC4899', '#F97316'] as const,
+    technaOrb: ['#38BDF8', '#818CF8', '#C084FC', '#F472B6', '#FB923C'] as const,
+  },
+
   priorities: {
     urgent: {
       color: '#EF4444',
@@ -64,7 +79,6 @@ export const colors = {
     },
   },
 
-
   categories: {
     Work: '#F8A878',
     Personal: '#93C5FD',
@@ -74,4 +88,5 @@ export const colors = {
     General: '#A78BFA',
   },
 };
+
 

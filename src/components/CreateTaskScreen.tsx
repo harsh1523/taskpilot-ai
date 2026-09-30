@@ -30,33 +30,17 @@ import {
   parseTimeString,
 } from '../utils/scheduleUtils';
 
+import { CircleIconButton } from './common/CircleIconButton';
+import { PrioritySelector } from './common/PrioritySelector';
+import { CalendarPickerView } from './common/CalendarPickerView';
+import { TimeSlotPicker } from './common/TimeSlotPicker';
+
 interface CreateTaskScreenProps {
   onClose: () => void;
   onSave: (task: Omit<Task, 'id' | 'createdAt' | 'isCompleted'>) => void;
   initialVoiceActive?: boolean;
   existingTasks?: Task[];
 }
-
-const priorities: { key: Priority; label: string; color: string }[] = [
-  { key: 'urgent', label: 'Urgent', color: '#EF4444' },
-  { key: 'high', label: 'High', color: '#F97316' },
-  { key: 'medium', label: 'Medium', color: '#F8A878' },
-  { key: 'low', label: 'Low', color: '#34D399' },
-];
-
-export interface DurationOption {
-  minutes: number;
-  label: string;
-}
-
-export const DURATION_OPTIONS: DurationOption[] = [
-  { minutes: 30, label: '30 min' },
-  { minutes: 45, label: '45 min' },
-  { minutes: 60, label: '1 hour' },
-  { minutes: 90, label: '1.5 hrs' },
-  { minutes: 120, label: '2 hours' },
-  { minutes: 180, label: '3 hours' },
-];
 
 export interface RepeatOptionItem {
   id: string;
@@ -74,29 +58,6 @@ export const REPEAT_LIST_OPTIONS: RepeatOptionItem[] = [
   { id: 'monthly', label: 'Monthly', subtitle: 'Repeats on the same date each month', icon: 'repeat-outline' },
 ];
 
-const baseHours = [
-  { hour: 6, period: 'Morning' as const },
-  { hour: 7, period: 'Morning' as const },
-  { hour: 8, period: 'Morning' as const },
-  { hour: 9, period: 'Morning' as const },
-  { hour: 10, period: 'Morning' as const },
-  { hour: 11, period: 'Morning' as const },
-  { hour: 12, period: 'Afternoon' as const },
-  { hour: 13, period: 'Afternoon' as const },
-  { hour: 14, period: 'Afternoon' as const },
-  { hour: 15, period: 'Afternoon' as const },
-  { hour: 16, period: 'Afternoon' as const },
-  { hour: 17, period: 'Afternoon' as const },
-  { hour: 18, period: 'Evening' as const },
-  { hour: 19, period: 'Evening' as const },
-  { hour: 20, period: 'Evening' as const },
-  { hour: 21, period: 'Night' as const },
-  { hour: 22, period: 'Night' as const },
-  { hour: 23, period: 'Night' as const },
-];
-
-
-
 const sampleVoicePhrases = [
   'Client feedback due date tomorrow at 6 PM high priority at office',
   'Morning team meeting due date Friday at 9 AM urgent',
@@ -104,8 +65,6 @@ const sampleVoicePhrases = [
   'Gym workout due date tomorrow at 7 PM',
   'Submit design roadmap due date next Monday 10 AM',
 ];
-
-const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
   onClose,
@@ -122,10 +81,8 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
   const [meetingLink, setMeetingLink] = useState('');
   const [priority, setPriority] = useState<Priority>('high');
 
-  // Full Calendar State
+  // Calendar State
   const now = new Date();
-  const [calYear, setCalYear] = useState(now.getFullYear());
-  const [calMonth, setCalMonth] = useState(now.getMonth());
   const [selectedDateObj, setSelectedDateObj] = useState(
     new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
   );
@@ -138,12 +95,11 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // Time & Duration State: 6:00 AM - ? with Occupied slot detection
+  // Time & Duration State
   const [selectedDuration, setSelectedDuration] = useState<number>(60); // 60 mins default
   const [selectedStartHour, setSelectedStartHour] = useState<number>(18); // 6:00 PM default
   const [selectedTime, setSelectedTime] = useState<string>('06:00 PM - 07:00 PM');
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [timeFilterPeriod, setTimeFilterPeriod] = useState<'All' | 'Morning' | 'Afternoon' | 'Night'>('All');
 
   // Notification and Repeat State with List Display
   const [notificationEnabled, setNotificationEnabled] = useState(true);
@@ -298,8 +254,6 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
       setSelectedDate(parsed.dateLabel);
       if (parsed.dateObj) {
         setSelectedDateObj(parsed.dateObj);
-        setCalYear(parsed.dateObj.getFullYear());
-        setCalMonth(parsed.dateObj.getMonth());
       }
       autoFilledCount++;
       filledNames.push(`Due: ${parsed.dateLabel}`);
@@ -350,153 +304,10 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
     setPriority(p);
   };
 
-  // Calendar Helpers
-  const prevMonth = () => {
-    playSpinnerTickSound(750);
-    if (calMonth === 0) {
-      setCalMonth(11);
-      setCalYear((y) => y - 1);
-    } else {
-      setCalMonth((m) => m - 1);
-    }
-  };
-
-  const nextMonth = () => {
-    playSpinnerTickSound(850);
-    if (calMonth === 11) {
-      setCalMonth(0);
-      setCalYear((y) => y + 1);
-    } else {
-      setCalMonth((m) => m + 1);
-    }
-  };
-
-  const handleSelectDay = (day: number) => {
-    playSpinnerTickSound(900);
-    const newDate = new Date(calYear, calMonth, day);
-    setSelectedDateObj(newDate);
-    const formatted = newDate.toLocaleDateString('en-US', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-    });
-    setSelectedDate(formatted);
-  };
-
-  const handleQuickJumpDate = (offsetDays: number, label: string) => {
-    playSpinnerTickSound(850);
-    const target = new Date();
-    target.setDate(target.getDate() + offsetDays);
-    setSelectedDateObj(target);
-    setCalYear(target.getFullYear());
-    setCalMonth(target.getMonth());
-    setSelectedDate(
-      label ||
-        target.toLocaleDateString('en-US', {
-          weekday: 'short',
-          day: 'numeric',
-          month: 'short',
-        })
-    );
-  };
-
-  // Build calendar matrix
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-  const firstDayOfWeek = new Date(calYear, calMonth, 1).getDay();
-  const prevMonthTotalDays = new Date(calYear, calMonth, 0).getDate();
-
-  const monthLabel = new Date(calYear, calMonth, 1).toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-  });
-
-  const calendarDays: { day: number; inMonth: boolean; date: Date }[] = [];
-
-  // Trailing days from previous month
-  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
-    const d = prevMonthTotalDays - i;
-    calendarDays.push({
-      day: d,
-      inMonth: false,
-      date: new Date(calYear, calMonth - 1, d),
-    });
-  }
-
-  // Days of current month
-  for (let d = 1; d <= daysInMonth; d++) {
-    calendarDays.push({
-      day: d,
-      inMonth: true,
-      date: new Date(calYear, calMonth, d),
-    });
-  }
-
-  // Padding days to fill out trailing week cells (total grid multiple of 7)
-  const remaining = (7 - (calendarDays.length % 7)) % 7;
-  for (let d = 1; d <= remaining; d++) {
-    calendarDays.push({
-      day: d,
-      inMonth: false,
-      date: new Date(calYear, calMonth + 1, d),
-    });
-  }
-
-  // Occupied schedule slots and conflict checking powered by scheduleUtils
+  // Occupied schedule slots powered by scheduleUtils
   const occupiedSchedule = useMemo(() => {
     return getOccupiedSchedule(existingTasks);
   }, [existingTasks]);
-
-  const isSlotOccupied = (startMin: number, endMin: number) => {
-    return checkSlotConflict(startMin, endMin - startMin, occupiedSchedule);
-  };
-
-  const currentSlotRange = useMemo(() => {
-    return computeTimeRange(selectedStartHour, selectedDuration);
-  }, [selectedStartHour, selectedDuration]);
-
-  const currentSlotOccupied = useMemo(() => {
-    return isSlotOccupied(currentSlotRange.startMinutes, currentSlotRange.endMinutes);
-  }, [currentSlotRange, occupiedSchedule]);
-
-  const allTimeSlots = useMemo(() => {
-    return baseHours.map((item) => {
-      const slot = computeTimeRange(item.hour, selectedDuration);
-      const occ = isSlotOccupied(slot.startMinutes, slot.endMinutes);
-      return {
-        ...item,
-        ...slot,
-        isOccupied: occ.occupied,
-        occupiedTitle: occ.title,
-      };
-    });
-  }, [selectedDuration, occupiedSchedule]);
-
-  const availableSlots = useMemo(() => {
-    return allTimeSlots.filter((s) => !s.isOccupied);
-  }, [allTimeSlots]);
-
-  const filteredTimeSlots = useMemo(() => {
-    return allTimeSlots.filter((opt) => {
-      if (timeFilterPeriod === 'All') return true;
-      if (timeFilterPeriod === 'Morning') return opt.period === 'Morning';
-      if (timeFilterPeriod === 'Afternoon') return opt.period === 'Afternoon';
-      if (timeFilterPeriod === 'Night') return opt.period === 'Evening' || opt.period === 'Night';
-      return true;
-    });
-  }, [allTimeSlots, timeFilterPeriod]);
-
-  const handleSelectDuration = (durationMin: number) => {
-    playSpinnerTickSound(850);
-    setSelectedDuration(durationMin);
-    const updated = computeTimeRange(selectedStartHour, durationMin);
-    setSelectedTime(updated.rangeString);
-  };
-
-  const handleSelectTimeSlot = (slot: { startHour: number; rangeString: string; isOccupied?: boolean }) => {
-    playSpinnerTickSound(slot.isOccupied ? 650 : 900);
-    setSelectedStartHour(slot.startHour);
-    setSelectedTime(slot.rangeString);
-  };
 
   const handleSave = () => {
     const trimmed = taskTitle.trim();
@@ -558,16 +369,16 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
       >
-        {/* Navigation Bar matching screenshot */}
+        {/* Navigation Bar */}
         <View style={[styles.navBar, { paddingTop: topPadding }]}>
-          {/* Circular Close Button */}
-          <TouchableOpacity
-            style={styles.circleIconBtn}
+          <CircleIconButton
+            icon="close"
+            size={44}
+            iconSize={20}
+            color="#D1D1DB"
+            backgroundColor="#16161F"
             onPress={onClose}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="close" size={20} color="#D1D1DB" />
-          </TouchableOpacity>
+          />
 
           {/* Techna Voice Mode Toggle Pill in Center */}
           <TouchableOpacity
@@ -714,34 +525,11 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
           {/* ================= CARD 3: Select Priority ================= */}
           <View style={styles.card}>
             <Text style={styles.cardSectionTitle}>Select Priority</Text>
-            <View style={styles.priorityPillRow}>
-              {priorities.map((item) => {
-                const isSelected = item.key === priority;
-                return (
-                  <TouchableOpacity
-                    key={item.key}
-                    style={[
-                      styles.priorityPill,
-                      isSelected && [
-                        styles.priorityPillSelected,
-                        { backgroundColor: item.color },
-                      ],
-                    ]}
-                    onPress={() => handleSelectPriority(item.key)}
-                    activeOpacity={0.8}
-                  >
-                    <Text
-                      style={[
-                        styles.priorityPillText,
-                        isSelected && { color: '#101014', fontWeight: '800' },
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <PrioritySelector
+              selectedPriority={priority}
+              onSelectPriority={setPriority}
+              variant="row"
+            />
           </View>
 
           {/* ================= CARD 4: Due Date, Time, Notification, Repeat ================= */}
@@ -772,113 +560,13 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
 
             {/* ================= FULL INTERACTIVE CALENDAR ================= */}
             {showDatePicker && (
-              <View style={styles.calendarContainer}>
-                {/* Quick Date Presets Row */}
-                <View style={styles.quickDateRow}>
-                  <TouchableOpacity
-                    style={[
-                      styles.quickDateBtn,
-                      isSameDay(selectedDateObj, new Date()) && styles.quickDateBtnActive,
-                    ]}
-                    onPress={() => handleQuickJumpDate(0, 'Today')}
-                  >
-                    <Text
-                      style={[
-                        styles.quickDateBtnText,
-                        isSameDay(selectedDateObj, new Date()) && styles.quickDateBtnTextActive,
-                      ]}
-                    >
-                      Today
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.quickDateBtn,
-                      isSameDay(selectedDateObj, new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)) &&
-                        styles.quickDateBtnActive,
-                    ]}
-                    onPress={() => handleQuickJumpDate(1, 'Tomorrow')}
-                  >
-                    <Text
-                      style={[
-                        styles.quickDateBtnText,
-                        isSameDay(selectedDateObj, new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)) &&
-                          styles.quickDateBtnTextActive,
-                      ]}
-                    >
-                      Tomorrow
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.quickDateBtn}
-                    onPress={() => handleQuickJumpDate(7, '')}
-                  >
-                    <Text style={styles.quickDateBtnText}>+1 Week</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Calendar Month Header & Navigation */}
-                <View style={styles.calendarHeaderRow}>
-                  <TouchableOpacity
-                    onPress={prevMonth}
-                    style={styles.calendarNavBtn}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="chevron-back" size={18} color="#D1D1DB" />
-                  </TouchableOpacity>
-                  <Text style={styles.calendarMonthTitle}>{monthLabel}</Text>
-                  <TouchableOpacity
-                    onPress={nextMonth}
-                    style={styles.calendarNavBtn}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="chevron-forward" size={18} color="#D1D1DB" />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Day-of-Week Column Labels */}
-                <View style={styles.calendarWeekRow}>
-                  {dayNames.map((dName, i) => (
-                    <Text key={i} style={styles.calendarWeekLabel}>
-                      {dName}
-                    </Text>
-                  ))}
-                </View>
-
-                {/* Calendar Days Grid */}
-                <View style={styles.calendarDaysGrid}>
-                  {calendarDays.map((item, index) => {
-                    const isSelected = isSameDay(item.date, selectedDateObj);
-                    const isToday = isSameDay(item.date, new Date());
-                    return (
-                      <TouchableOpacity
-                        key={index}
-                        style={[
-                          styles.calendarDayCell,
-                          isSelected && styles.calendarDayCellSelected,
-                          isToday && !isSelected && styles.calendarDayCellToday,
-                        ]}
-                        onPress={() => item.inMonth && handleSelectDay(item.day)}
-                        disabled={!item.inMonth}
-                        activeOpacity={0.75}
-                      >
-                        <Text
-                          style={[
-                            styles.calendarDayText,
-                            !item.inMonth && styles.calendarDayTextDisabled,
-                            isToday && !isSelected && styles.calendarDayTextToday,
-                            isSelected && styles.calendarDayTextSelected,
-                          ]}
-                        >
-                          {item.day}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
+              <CalendarPickerView
+                selectedDate={selectedDateObj}
+                onSelectDate={(date, label) => {
+                  setSelectedDateObj(date);
+                  setSelectedDate(label);
+                }}
+              />
             )}
 
             <View style={styles.hairlineDivider} />
@@ -907,156 +595,23 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
               </View>
             </TouchableOpacity>
 
-            {/* ================= TIME PICKER WITH DURATION (6 - ?) & AVAILABILITY ================= */}
+            {/* ================= TIME PICKER WITH DURATION & AVAILABILITY ================= */}
             {showTimePicker && (
-              <View style={styles.timePickerContainer}>
-                {/* 1. Duration Selector Section (6:00 AM - ?) */}
-                <View style={styles.durationSection}>
-                  <View style={styles.durationHeaderRow}>
-                    <Text style={styles.durationSectionLabel}>Duration (e.g. 6 - ?)</Text>
-                    <Text style={styles.durationCurrentBadge}>
-                      {selectedDuration < 60
-                        ? `${selectedDuration} mins`
-                        : selectedDuration === 60
-                        ? '1 hour'
-                        : `${selectedDuration / 60} hours`}
-                    </Text>
-                  </View>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.durationRow}
-                  >
-                    {DURATION_OPTIONS.map((dur) => {
-                      const isSel = selectedDuration === dur.minutes;
-                      return (
-                        <TouchableOpacity
-                          key={dur.minutes}
-                          style={[styles.durationChip, isSel && styles.durationChipSelected]}
-                          onPress={() => handleSelectDuration(dur.minutes)}
-                          activeOpacity={0.75}
-                        >
-                          <Text style={[styles.durationChipText, isSel && styles.durationChipTextSelected]}>
-                            {dur.label}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-
-                {/* 2. Occupied Alert & Available Slots recommendation */}
-                {currentSlotOccupied.occupied && (
-                  <View style={styles.occupiedAlertCard}>
-                    <View style={styles.occupiedAlertHeader}>
-                      <Ionicons name="alert-circle" size={17} color="#F87171" style={{ marginRight: 6 }} />
-                      <Text style={styles.occupiedAlertTitle}>
-                        Slot Occupied ({currentSlotRange.rangeString})
-                      </Text>
-                    </View>
-                    <Text style={styles.occupiedAlertSub}>
-                      Already booked for "{currentSlotOccupied.title}". Tap an available slot below:
-                    </Text>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.availableSlotsRow}
-                    >
-                      {availableSlots.map((avSlot) => (
-                        <TouchableOpacity
-                          key={avSlot.rangeString}
-                          style={styles.availableSlotChip}
-                          onPress={() => handleSelectTimeSlot(avSlot)}
-                          activeOpacity={0.8}
-                        >
-                          <Ionicons name="sparkles" size={12} color="#151518" style={{ marginRight: 4 }} />
-                          <Text style={styles.availableSlotChipText}>{avSlot.rangeString}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-
-                {/* 3. Period Filter Tabs */}
-                <View style={styles.periodFilterRow}>
-                  {(['All', 'Morning', 'Afternoon', 'Night'] as const).map((period) => {
-                    const isAct = timeFilterPeriod === period;
-                    return (
-                      <TouchableOpacity
-                        key={period}
-                        style={[styles.periodTab, isAct && styles.periodTabActive]}
-                        onPress={() => {
-                          playSpinnerTickSound(750);
-                          setTimeFilterPeriod(period);
-                        }}
-                      >
-                        <Text style={[styles.periodTabText, isAct && styles.periodTabTextActive]}>
-                          {period}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                {/* 4. Time Slots Grid with Start-End Ranges & Occupied Badges */}
-                <View style={styles.timeSlotsGrid}>
-                  {filteredTimeSlots.map((item) => {
-                    const isSelected = selectedStartHour === item.startHour;
-                    return (
-                      <TouchableOpacity
-                        key={item.startHour}
-                        style={[
-                          styles.timeSlotChip,
-                          isSelected && styles.timeSlotChipSelected,
-                          item.isOccupied && !isSelected && styles.timeSlotChipOccupied,
-                        ]}
-                        onPress={() => handleSelectTimeSlot(item)}
-                        activeOpacity={0.75}
-                      >
-                        <View style={styles.timeSlotRowTop}>
-                          <Text
-                            style={[
-                              styles.timeSlotChipText,
-                              isSelected && styles.timeSlotChipTextSelected,
-                              item.isOccupied && !isSelected && styles.timeSlotChipTextOccupied,
-                            ]}
-                          >
-                            {item.rangeString}
-                          </Text>
-                        </View>
-                        <View style={styles.timeSlotStatusRow}>
-                          {item.isOccupied ? (
-                            <View style={styles.occupiedTag}>
-                              <View style={styles.redDot} />
-                              <Text
-                                style={[
-                                  styles.occupiedTagText,
-                                  isSelected && styles.occupiedTagTextSelected,
-                                ]}
-                                numberOfLines={1}
-                              >
-                                {item.occupiedTitle || 'Busy'}
-                              </Text>
-                            </View>
-                          ) : (
-                            <View style={styles.availableTag}>
-                              <View style={[styles.greenDot, isSelected && styles.greenDotSelected]} />
-                              <Text
-                                style={[
-                                  styles.availableTagText,
-                                  isSelected && styles.availableTagTextSelected,
-                                ]}
-                              >
-                                Available
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
+              <TimeSlotPicker
+                selectedStartHour={selectedStartHour}
+                selectedDuration={selectedDuration}
+                occupiedSchedule={occupiedSchedule}
+                onSelectSlot={(slot) => {
+                  playSpinnerTickSound(slot.isOccupied ? 650 : 900);
+                  setSelectedStartHour(slot.startHour);
+                  setSelectedTime(slot.rangeString);
+                }}
+                onSelectDuration={(dur) => {
+                  playSpinnerTickSound(850);
+                  setSelectedDuration(dur);
+                  setSelectedTime(computeTimeRange(selectedStartHour, dur).rangeString);
+                }}
+              />
             )}
 
             <View style={styles.hairlineDivider} />
@@ -1457,334 +1012,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // ================= FULL CALENDAR STYLES =================
-  calendarContainer: {
-    backgroundColor: '#171722',
-    borderRadius: 16,
-    padding: 14,
-    marginTop: 10,
-    marginBottom: 6,
-    borderWidth: 1,
-    borderColor: '#262636',
-  },
-  quickDateRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  quickDateBtn: {
-    flex: 1,
-    backgroundColor: '#20202E',
-    paddingVertical: 6,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#2E2E40',
-  },
-  quickDateBtnActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  quickDateBtnText: {
-    color: '#B0B0C0',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  quickDateBtnTextActive: {
-    color: '#101014',
-    fontWeight: '800',
-  },
-  calendarHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  calendarNavBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#222232',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  calendarMonthTitle: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-  },
-  calendarWeekRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 6,
-  },
-  calendarWeekLabel: {
-    width: 36,
-    textAlign: 'center',
-    color: '#767688',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  calendarDaysGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-  },
-  calendarDayCell: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 2,
-  },
-  calendarDayCellSelected: {
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  calendarDayCellToday: {
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  calendarDayText: {
-    color: '#E0E0EC',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  calendarDayTextDisabled: {
-    color: '#3C3C4C',
-  },
-  calendarDayTextToday: {
-    color: colors.primary,
-    fontWeight: '800',
-  },
-  calendarDayTextSelected: {
-    color: '#101014',
-    fontWeight: '800',
-  },
 
-  // ================= FULL 6AM - 12AM TIME PICKER STYLES =================
-  timePickerContainer: {
-    backgroundColor: '#171722',
-    borderRadius: 16,
-    padding: 12,
-    marginTop: 10,
-    marginBottom: 6,
-    borderWidth: 1,
-    borderColor: '#262636',
-  },
-  periodFilterRow: {
-    flexDirection: 'row',
-    backgroundColor: '#111118',
-    borderRadius: 10,
-    padding: 3,
-    marginBottom: 10,
-    gap: 4,
-  },
-  periodTab: {
-    flex: 1,
-    paddingVertical: 6,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  periodTabActive: {
-    backgroundColor: '#262636',
-  },
-  periodTabText: {
-    color: '#808092',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  periodTabTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  // Duration & Occupied Time Styles
-  durationSection: {
-    marginBottom: 12,
-  },
-  durationHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  durationSectionLabel: {
-    color: '#8A8A9C',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  durationCurrentBadge: {
-    color: colors.primary,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  durationRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  durationChip: {
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: '#1F1F2B',
-    borderWidth: 1,
-    borderColor: '#2D2D3E',
-  },
-  durationChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  durationChipText: {
-    color: '#A0A0B2',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  durationChipTextSelected: {
-    color: '#151518',
-    fontWeight: '800',
-  },
-  occupiedAlertCard: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.35)',
-  },
-  occupiedAlertHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  occupiedAlertTitle: {
-    color: '#F87171',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  occupiedAlertSub: {
-    color: '#D1D5DB',
-    fontSize: 12,
-    marginBottom: 10,
-  },
-  availableSlotsRow: {
-    gap: 8,
-  },
-  availableSlotChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-  },
-  availableSlotChipText: {
-    color: '#151518',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  timeSlotsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  timeSlotChip: {
-    width: '48%',
-    backgroundColor: '#20202E',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#2B2B3C',
-  },
-  timeSlotChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  timeSlotChipOccupied: {
-    backgroundColor: '#191924',
-    borderColor: '#3D2528',
-    opacity: 0.88,
-  },
-  timeSlotRowTop: {
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  timeSlotChipText: {
-    color: '#E0E0EC',
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  timeSlotChipTextSelected: {
-    color: '#101014',
-    fontWeight: '800',
-  },
-  timeSlotChipTextOccupied: {
-    color: '#D1A2A6',
-  },
-  timeSlotStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  availableTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  greenDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#34D399',
-  },
-  greenDotSelected: {
-    backgroundColor: '#101014',
-  },
-  availableTagText: {
-    color: '#34D399',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  availableTagTextSelected: {
-    color: '#261808',
-    fontWeight: '700',
-  },
-  occupiedTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    maxWidth: '100%',
-  },
-  redDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#EF4444',
-  },
-  occupiedTagText: {
-    color: '#EF4444',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  occupiedTagTextSelected: {
-    color: '#341010',
-    fontWeight: '700',
-  },
 
   // Repeat List Form Styles
   repeatListContainer: {

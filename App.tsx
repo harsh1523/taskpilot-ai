@@ -287,7 +287,7 @@ export default function App() {
             accessibilityLabel="Speak to add task with Techna"
           >
             <LinearGradient
-              colors={['#A855F7', '#EC4899', '#F97316']}
+              colors={colors.gradients.techna}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.technaVoiceGradient}
