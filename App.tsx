@@ -185,17 +185,13 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" backgroundColor="#0D0D11" />
+        <StatusBar barStyle="light-content" backgroundColor="#07070A" />
 
-        {/* Ambient Twilight Lighting Glow */}
+        {/* Ambient Aurora Glow (Milkinside signature) */}
         <LinearGradient
-          colors={[
-            'rgba(248, 168, 120, 0.12)',
-            'rgba(217, 126, 78, 0.04)',
-            'transparent',
-          ]}
+          colors={colors.gradients.ambient}
           start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 0.35 }}
+          end={{ x: 0.5, y: 0.4 }}
           style={styles.ambientGlow}
           pointerEvents="none"
         />
@@ -219,19 +215,19 @@ export default function App() {
           }}
         />
 
-        {/* Search Bar */}
+        {/* Frosted Glass Search Bar */}
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={17} color={colors.primary} style={styles.searchIcon} />
+          <Ionicons name="search" size={17} color={colors.cyan} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search tasks..."
-            placeholderTextColor="#767684"
+            placeholderTextColor="#6E6E82"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color="#767684" />
+              <Ionicons name="close-circle" size={18} color="#8A8A9E" />
             </TouchableOpacity>
           )}
         </View>
@@ -263,7 +259,7 @@ export default function App() {
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <View style={styles.emptyIconCircle}>
-                  <Ionicons name="sparkles" size={32} color={colors.primary} />
+                  <Ionicons name="sparkles" size={32} color={colors.primaryLight} />
                 </View>
                 <Text style={styles.emptyTitle}>No tasks found</Text>
                 <Text style={styles.emptySubtitle}>
@@ -276,7 +272,7 @@ export default function App() {
           />
         )}
 
-        {/* Bottom Action Dock with Create Task & Small Techna Voice Button */}
+        {/* Bottom Action Dock with Glowing Create Task & Techna Voice Button */}
         <View style={styles.bottomDock}>
           <TouchableOpacity
             style={styles.createTaskBtn}
@@ -286,7 +282,7 @@ export default function App() {
             }}
             activeOpacity={0.88}
           >
-            <Ionicons name="add" size={22} color="#151518" />
+            <Ionicons name="add" size={22} color="#FFFFFF" />
             <Text style={styles.createTaskBtnText}>Create Task</Text>
           </TouchableOpacity>
 
@@ -320,7 +316,7 @@ export default function App() {
         onShiftTask={handleShiftTask}
       />
 
-      {/* Techna Voice Task Modal (Step-by-step: Task Name -> Time/Slot -> Priority, Notification Always On) */}
+      {/* Techna Voice Task Modal */}
       <VoiceTaskModal
         visible={voiceModalVisible}
         onClose={() => setVoiceModalVisible(false)}
@@ -337,24 +333,24 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     ...commonStyles.flex1,
-    backgroundColor: '#0D0D11',
+    backgroundColor: '#07070A',
   },
   ambientGlow: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 240,
+    height: 280,
   },
   searchContainer: {
     ...commonStyles.row,
-    backgroundColor: '#1A1A1E',
+    backgroundColor: 'rgba(16, 16, 26, 0.8)',
     marginHorizontal: padding.screenHorizontal,
-    marginBottom: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    borderRadius: radius.card,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#2A2A34',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     height: 48,
   },
   searchIcon: {
@@ -390,11 +386,11 @@ const styles = StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 38,
-    backgroundColor: '#1E1E24',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     ...commonStyles.center,
     marginBottom: spacing.xl,
     borderWidth: 1,
-    borderColor: '#2C2C36',
+    borderColor: 'rgba(139, 92, 246, 0.25)',
   },
   emptyTitle: {
     fontSize: fontSizes.titleSm,
@@ -404,7 +400,7 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: fontSizes.md,
-    color: '#7E7E8B',
+    color: '#7E7E94',
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -420,29 +416,29 @@ const styles = StyleSheet.create({
     ...commonStyles.flex1,
     ...commonStyles.rowCenter,
     backgroundColor: colors.primary,
-    paddingVertical: spacing.xl,
+    paddingVertical: spacing.xl - 2,
     borderRadius: radius.round,
     gap: spacing.md,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 8,
   },
   createTaskBtnText: {
-    color: '#151518',
+    color: '#FFFFFF',
     fontSize: fontSizes.subtitle,
     fontWeight: fontWeights.heavy,
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
   technaVoiceFab: {
     width: 54,
     height: 54,
     borderRadius: 27,
-    shadowColor: '#EC4899',
+    shadowColor: '#8B5CF6',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
+    shadowOpacity: 0.55,
+    shadowRadius: 14,
     elevation: 8,
   },
   technaVoiceGradient: {

@@ -353,14 +353,9 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
       {/* Apple Intelligence Techna Display Border Glow when mic is active */}
       <TechnaDisplayBorderGlow active={isListening} />
 
-      {/* Top Ambient Twilight Lighting Bloom */}
+      {/* Top Ambient Aurora Glow */}
       <LinearGradient
-        colors={[
-          'rgba(248, 168, 120, 0.16)',
-          'rgba(217, 126, 78, 0.08)',
-          'rgba(14, 14, 20, 0.02)',
-          'transparent',
-        ]}
+        colors={colors.gradients.ambient}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 0.45 }}
         style={styles.ambientGlow}
@@ -377,8 +372,8 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
             icon="close"
             size={44}
             iconSize={20}
-            color="#D1D1DB"
-            backgroundColor="#16161F"
+            color="#FFFFFF"
+            backgroundColor="rgba(24, 24, 36, 0.8)"
             onPress={onClose}
           />
 
@@ -392,7 +387,7 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
             <Ionicons
               name={isListening ? 'mic' : 'mic-outline'}
               size={15}
-              color={isListening ? colors.primary : '#A0A0B0'}
+              color={isListening ? colors.primaryLight : '#A0A0B0'}
             />
             <Text style={[styles.technaPillText, isListening && styles.technaPillTextActive]}>
               {isListening ? 'Listening...' : 'Voice Auto-Fill'}
@@ -406,7 +401,7 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
             activeOpacity={0.8}
             accessibilityLabel="Save task"
           >
-            <Ionicons name="checkmark-circle" size={17} color="#101014" style={{ marginRight: 5 }} />
+            <Ionicons name="checkmark-circle" size={17} color="#FFFFFF" style={{ marginRight: 5 }} />
             <Text style={styles.navSaveBtnText}>Save</Text>
           </TouchableOpacity>
         </View>
@@ -722,7 +717,7 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0E',
+    backgroundColor: '#07070A',
   },
   keyboardView: {
     flex: 1,
@@ -745,26 +740,26 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#16161F',
+    backgroundColor: 'rgba(24, 24, 36, 0.8)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#242434',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   technaPillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#16161F',
+    backgroundColor: 'rgba(20, 20, 30, 0.8)',
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#262636',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     gap: 6,
   },
   technaPillBtnActive: {
     borderColor: colors.primary,
-    backgroundColor: 'rgba(248, 168, 120, 0.12)',
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
   },
   technaDot: {
     width: 7,
@@ -781,7 +776,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   technaPillTextActive: {
-    color: colors.primary,
+    color: colors.primaryLight,
     fontWeight: '700',
   },
   navSaveBtn: {
@@ -793,12 +788,12 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    elevation: 5,
   },
   navSaveBtnText: {
-    color: '#101014',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -809,8 +804,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
     elevation: 6,
   },
   bottomSaveGradient: {
@@ -822,7 +817,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   bottomSaveBtnText: {
-    color: '#151518',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: 0.3,
@@ -852,29 +847,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(248, 168, 120, 0.14)',
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: 'rgba(248, 168, 120, 0.3)',
+    borderColor: 'rgba(139, 92, 246, 0.25)',
   },
   noticeText: {
-    color: '#F8A878',
+    color: colors.primaryLight,
     fontSize: 12,
     fontWeight: '700',
   },
 
   // Cards
   card: {
-    backgroundColor: '#14141C',
-    borderRadius: 20,
+    backgroundColor: 'rgba(16, 16, 24, 0.95)',
+    borderRadius: 22,
     paddingHorizontal: 18,
     paddingVertical: 16,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#20202C',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   titleInputRow: {
     flexDirection: 'row',
@@ -896,12 +891,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#1E1E28',
+    backgroundColor: 'rgba(28, 28, 40, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 6,
     borderWidth: 1,
-    borderColor: '#2D2D3E',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   inputMicBtnActive: {
     backgroundColor: colors.primary,
@@ -915,14 +910,14 @@ const styles = StyleSheet.create({
   inlineListeningBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(248, 168, 120, 0.08)',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginTop: 10,
     marginBottom: 4,
     borderWidth: 1,
-    borderColor: 'rgba(248, 168, 120, 0.25)',
+    borderColor: 'rgba(139, 92, 246, 0.25)',
   },
   soundWaveRow: {
     flexDirection: 'row',
@@ -933,7 +928,7 @@ const styles = StyleSheet.create({
   },
   soundWaveBar: {
     width: 3,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primaryLight,
     borderRadius: 2,
   },
   inlineListeningTexts: {
@@ -942,7 +937,7 @@ const styles = StyleSheet.create({
   inlineListeningTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.primaryLight,
     marginBottom: 2,
   },
   inlineListeningSub: {
@@ -973,7 +968,7 @@ const styles = StyleSheet.create({
   },
   hairlineDivider: {
     height: 1,
-    backgroundColor: '#20202C',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     marginVertical: 10,
   },
   cardSectionTitle: {
@@ -984,7 +979,7 @@ const styles = StyleSheet.create({
   },
   priorityPillRow: {
     flexDirection: 'row',
-    backgroundColor: '#1A1A24',
+    backgroundColor: 'rgba(20, 20, 30, 0.8)',
     borderRadius: 14,
     padding: 3,
     gap: 4,
@@ -1028,16 +1023,16 @@ const styles = StyleSheet.create({
   pillBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#20202A',
+    backgroundColor: 'rgba(24, 24, 36, 0.8)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2D2D3C',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   pillBadgeActive: {
     borderColor: colors.primary,
-    backgroundColor: 'rgba(248, 168, 120, 0.12)',
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
   },
   pillBadgeText: {
     color: '#FFFFFF',
@@ -1055,37 +1050,37 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-
-
   // Repeat List Form Styles
   repeatListContainer: {
-    backgroundColor: '#171722',
-    borderRadius: 16,
+    backgroundColor: 'rgba(20, 20, 30, 0.9)',
+    borderRadius: 18,
     padding: 8,
     marginTop: 8,
     marginBottom: 4,
     borderWidth: 1,
-    borderColor: '#262636',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   repeatListItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: '#1E1E28',
+    borderRadius: 14,
+    backgroundColor: 'rgba(24, 24, 36, 0.7)',
     marginBottom: 6,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   repeatListItemSelected: {
-    backgroundColor: 'rgba(248, 168, 120, 0.12)',
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(248, 168, 120, 0.45)',
+    borderColor: 'rgba(139, 92, 246, 0.4)',
   },
   repeatIconCircle: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#262634',
+    backgroundColor: 'rgba(32, 32, 46, 0.8)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -1103,7 +1098,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   repeatItemLabelSelected: {
-    color: colors.primary,
+    color: colors.primaryLight,
     fontWeight: '800',
   },
   repeatItemSub: {

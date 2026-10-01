@@ -156,7 +156,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               ]}
             >
               {task.isCompleted ? (
-                <Ionicons name="checkmark" size={13} color="#0D0D11" />
+                <Ionicons name="checkmark" size={13} color="#FFFFFF" />
               ) : null}
             </Animated.View>
           </TouchableOpacity>
@@ -190,7 +190,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               {/* Due Date & Time */}
               {task.dueDate ? (
                 <View style={styles.badge}>
-                  <Ionicons name="time-outline" size={11} color={colors.primary} />
+                  <Ionicons name="time-outline" size={11} color={colors.cyan} />
                   <Text style={styles.badgeText}>{task.dueDate}</Text>
                 </View>
               ) : null}
@@ -205,7 +205,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               <View
                 style={[
                   styles.priorityBadge,
-                  { backgroundColor: `${priorityInfo.color}18`, borderColor: `${priorityInfo.color}40` },
+                  { backgroundColor: `${priorityInfo.color}15`, borderColor: `${priorityInfo.color}35` },
                 ]}
               >
                 <Text style={[styles.priorityBadgeText, { color: priorityInfo.color }]}>
@@ -216,8 +216,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               {/* Voice badge */}
               {task.createdVia === 'voice' && (
                 <View style={styles.voiceBadge}>
-                  <Ionicons name="mic" size={10} color={colors.primary} />
-                  <Text style={styles.voiceText}>Voice</Text>
+                  <Ionicons name="sparkles" size={10} color={colors.primaryLight} />
+                  <Text style={styles.voiceText}>AI Voice</Text>
                 </View>
               )}
             </View>
@@ -230,7 +230,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             activeOpacity={0.6}
             accessibilityLabel="Delete task"
           >
-            <Ionicons name="trash-outline" size={16} color="#646476" />
+            <Ionicons name="trash-outline" size={16} color="#6E6E82" />
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -241,14 +241,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 const styles = StyleSheet.create({
   swipeContainer: {
     position: 'relative',
-    marginBottom: spacing.base,
-    borderRadius: radius.cardLg,
+    marginBottom: spacing.md,
+    borderRadius: 22,
     overflow: 'hidden',
   },
   swipeBackground: {
     ...commonStyles.absoluteFill,
     backgroundColor: '#DC2626',
-    borderRadius: radius.cardLg,
+    borderRadius: 22,
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
@@ -266,21 +266,21 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   card: {
-    backgroundColor: '#15151C',
-    borderRadius: radius.cardLg,
-    padding: spacing.xl - 2,
+    backgroundColor: 'rgba(16, 16, 24, 0.88)',
+    borderRadius: 22,
+    padding: spacing.lg + 2,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 3,
   },
   cardCompleted: {
-    backgroundColor: '#121217',
-    borderColor: '#1C1C24',
-    opacity: 0.65,
+    backgroundColor: 'rgba(12, 12, 18, 0.65)',
+    borderColor: 'rgba(255, 255, 255, 0.04)',
+    opacity: 0.6,
   },
   contentRow: {
     flexDirection: 'row',
@@ -288,43 +288,47 @@ const styles = StyleSheet.create({
   },
   checkboxTouch: {
     paddingTop: 2,
-    paddingRight: spacing.lg,
+    paddingRight: spacing.md + 2,
   },
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: radius.lg,
-    borderWidth: 1.8,
-    borderColor: '#4A4A5A',
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
     ...commonStyles.center,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
   },
   checkboxChecked: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
   },
   textContainer: {
     ...commonStyles.flex1,
   },
   title: {
-    fontSize: fontSizes.lg,
+    fontSize: fontSizes.lg - 0.5,
     fontWeight: fontWeights.bold,
-    color: '#F0F0F8',
-    lineHeight: 20,
-    marginBottom: spacing.xs,
+    color: '#FFFFFF',
+    lineHeight: 21,
+    marginBottom: spacing.xxs,
   },
   titleCompleted: {
-    color: '#6E6E7E',
+    color: '#6E6E82',
     textDecorationLine: 'line-through',
   },
   description: {
     fontSize: fontSizes.sm,
-    color: '#848494',
-    lineHeight: 17,
+    color: '#9494A8',
+    lineHeight: 18,
     marginBottom: spacing.md,
   },
   descriptionCompleted: {
-    color: '#555562',
+    color: '#4E4E60',
   },
   metaRow: {
     ...commonStyles.row,
@@ -334,13 +338,13 @@ const styles = StyleSheet.create({
   },
   badge: {
     ...commonStyles.row,
-    backgroundColor: '#1D1D26',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 3,
-    borderRadius: radius.md,
+    backgroundColor: 'rgba(24, 24, 36, 0.75)',
+    paddingHorizontal: spacing.md - 1,
+    paddingVertical: 3.5,
+    borderRadius: 12,
     gap: spacing.xs,
     borderWidth: 1,
-    borderColor: '#282836',
+    borderColor: 'rgba(255, 255, 255, 0.07)',
   },
   categoryDot: {
     width: 6,
@@ -348,36 +352,39 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   badgeText: {
-    color: '#A0A0B0',
+    color: '#A8A8C0',
     fontSize: fontSizes.xs,
     fontWeight: fontWeights.semibold,
   },
   priorityBadge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 2,
-    borderRadius: radius.md,
+    paddingHorizontal: spacing.md - 1,
+    paddingVertical: 3,
+    borderRadius: 12,
     borderWidth: 1,
   },
   priorityBadgeText: {
     fontSize: fontSizes.tiny,
     fontWeight: fontWeights.heavy,
     textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   voiceBadge: {
     ...commonStyles.row,
-    backgroundColor: 'rgba(248, 168, 120, 0.12)',
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
     paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: radius.md,
+    paddingVertical: 3,
+    borderRadius: 12,
     gap: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.25)',
   },
   voiceText: {
-    color: colors.primary,
+    color: colors.primaryLight,
     fontSize: fontSizes.tiny,
     fontWeight: fontWeights.bold,
   },
   deleteBtn: {
     padding: spacing.sm,
-    marginLeft: spacing.sm,
+    marginLeft: spacing.xs,
   },
 });

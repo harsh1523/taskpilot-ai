@@ -65,12 +65,12 @@ export const SplashScreenView: React.FC<SplashScreenViewProps> = ({ onFinish }) 
     <Animated.View style={[styles.container, { opacity: exitAnim }]}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Top ambient warm peach glow matching the app aesthetic */}
+      {/* Top ambient aurora glow matching Milkinside Gen UI */}
       <LinearGradient
         colors={[
-          'rgba(248, 168, 120, 0.45)',
-          'rgba(217, 126, 78, 0.25)',
-          'rgba(140, 68, 36, 0.12)',
+          'rgba(139, 92, 246, 0.45)',
+          'rgba(56, 189, 248, 0.22)',
+          'rgba(236, 72, 153, 0.12)',
           'transparent',
         ]}
         start={{ x: 0.5, y: 0 }}
@@ -119,7 +119,7 @@ export const SplashScreenView: React.FC<SplashScreenViewProps> = ({ onFinish }) 
 const styles = StyleSheet.create({
   container: {
     ...commonStyles.flex1,
-    backgroundColor: '#0D0D11',
+    backgroundColor: '#07070A',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: height * 0.08,
@@ -151,11 +151,11 @@ const styles = StyleSheet.create({
   },
   brandAccent: {
     fontWeight: fontWeights.heavy,
-    color: colors.primary,
+    color: colors.primaryLight,
   },
   tagline: {
     fontSize: fontSizes.md,
-    color: '#8A8A96',
+    color: '#8A8A9E',
     fontWeight: fontWeights.medium,
     letterSpacing: 1,
     marginTop: spacing.sm,
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   progressTrack: {
     width: 140,
     height: 3,
-    backgroundColor: '#222228',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: radius.xxs,
     overflow: 'hidden',
   },
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: fontSizes.tiny,
-    color: '#5C5C66',
+    color: '#646476',
     letterSpacing: 3,
     fontWeight: fontWeights.bold,
   },

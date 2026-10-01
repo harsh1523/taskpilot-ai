@@ -50,30 +50,36 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Real-time Status Bar (Date, Month, Year, and Live Ticking Time Only) */}
+      {/* Real-time Status Bar (Date and Live Ticking Time with Gen UI frosted capsules) */}
       <View style={styles.realtimeBar}>
         {/* Date Month Year Pill */}
         <View style={styles.datePill}>
-          <Ionicons name="calendar" size={13} color={colors.primary} style={styles.pillIcon} />
+          <Ionicons name="calendar-outline" size={13} color={colors.primaryLight} style={styles.pillIcon} />
           <Text style={styles.dateText}>{formattedDate}</Text>
         </View>
 
-        {/* Real-Time Clock Pill with live pulsing green dot */}
+        {/* Real-Time Clock Pill with live pulsing neon emerald dot */}
         <View style={styles.timePill}>
           <View style={styles.liveClockDot} />
-          <Ionicons name="time" size={13} color={colors.primary} style={styles.pillIcon} />
+          <Ionicons name="time-outline" size={13} color={colors.cyan} style={styles.pillIcon} />
           <Text style={styles.timeText}>{formattedTime}</Text>
         </View>
       </View>
 
       {/* Main App Title */}
       <View style={styles.titleRow}>
-        <Text style={styles.title}>
-          Smart <Text style={styles.boldTitle}>Tasks</Text>
-        </Text>
+        <View style={styles.titleAuraContainer}>
+          <Text style={styles.title}>
+            Smart <Text style={styles.boldTitle}>Tasks</Text>
+          </Text>
+          <View style={styles.genUiBadge}>
+            <Ionicons name="sparkles" size={10} color={colors.primaryLight} style={{ marginRight: 3 }} />
+            <Text style={styles.genUiBadgeText}>GEN UI</Text>
+          </View>
+        </View>
       </View>
 
-      {/* Apple-Style Segmented Filter Bar */}
+      {/* Frosted Glass Segmented Filter Bar */}
       <View style={styles.segmentBar}>
         <TouchableOpacity
           style={[styles.segmentTab, activeFilter === 'all' && styles.segmentTabActive]}
@@ -127,115 +133,140 @@ export const Header: React.FC<HeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: padding.screenHorizontal,
-    paddingTop: spacing.md,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.base,
   },
   realtimeBar: {
     ...commonStyles.rowBetween,
-    marginBottom: spacing.base,
+    marginBottom: spacing.md,
   },
   datePill: {
     ...commonStyles.row,
-    backgroundColor: '#16161E',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    backgroundColor: 'rgba(18, 18, 28, 0.75)',
+    paddingHorizontal: spacing.md + 2,
+    paddingVertical: spacing.xs + 2,
     borderRadius: radius.xxl,
     borderWidth: 1,
-    borderColor: '#262636',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   timePill: {
     ...commonStyles.row,
-    backgroundColor: '#16161E',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    backgroundColor: 'rgba(18, 18, 28, 0.75)',
+    paddingHorizontal: spacing.md + 2,
+    paddingVertical: spacing.xs + 2,
     borderRadius: radius.xxl,
     borderWidth: 1,
-    borderColor: '#262636',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   pillIcon: {
-    marginRight: spacing.sm,
+    marginRight: spacing.xs + 2,
   },
   liveClockDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: colors.success,
-    marginRight: spacing.sm,
+    marginRight: spacing.xs + 2,
+    shadowColor: colors.success,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
   },
   dateText: {
-    color: '#D4D4E0',
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.bold,
-    letterSpacing: 0.3,
+    color: '#D4D4E8',
+    fontSize: fontSizes.sm - 0.5,
+    fontWeight: fontWeights.semibold,
+    letterSpacing: 0.2,
   },
   timeText: {
     color: colors.textPrimary,
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes.sm - 0.5,
     fontWeight: fontWeights.heavy,
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   titleRow: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
+  },
+  titleAuraContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   title: {
     fontSize: fontSizes.headline,
     fontWeight: '300',
-    color: '#E8E8EE',
-    letterSpacing: -0.5,
+    color: '#DCDCE8',
+    letterSpacing: -0.6,
   },
   boldTitle: {
     fontWeight: fontWeights.heavy,
     color: colors.textPrimary,
   },
+  genUiBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.25)',
+  },
+  genUiBadgeText: {
+    color: '#C4B5FD',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
   segmentBar: {
     flexDirection: 'row',
-    backgroundColor: colors.card,
-    borderRadius: radius.card,
+    backgroundColor: 'rgba(16, 16, 26, 0.85)',
+    borderRadius: 20,
     padding: 3,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    gap: spacing.xs,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    gap: 3,
   },
   segmentTab: {
     ...commonStyles.flex1,
     ...commonStyles.rowCenter,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md + 5,
+    paddingVertical: spacing.md - 1,
+    borderRadius: 16,
     gap: spacing.sm,
   },
   segmentTabActive: {
-    backgroundColor: '#20202A',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 4,
   },
   segmentLabel: {
-    color: '#767686',
-    fontSize: fontSizes.md,
+    color: '#828298',
+    fontSize: fontSizes.md - 1,
     fontWeight: fontWeights.semibold,
   },
   segmentLabelActive: {
-    color: colors.textPrimary,
+    color: '#FFFFFF',
     fontWeight: fontWeights.heavy,
   },
   countBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xxs,
-    borderRadius: radius.md,
-    backgroundColor: '#1A1A22',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
   },
   countBadgeActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
   },
   countBadgeText: {
-    color: '#6E6E7E',
+    color: '#727288',
     fontSize: fontSizes.tiny,
     fontWeight: fontWeights.bold,
   },
   countBadgeTextActive: {
-    color: '#151518',
+    color: '#FFFFFF',
     fontWeight: fontWeights.heavy,
   },
 });

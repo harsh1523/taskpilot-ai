@@ -50,12 +50,12 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onStart }) =
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Top warm ambient lighting glow matching screenshot 1 */}
+      {/* Top ambient aurora glow matching Milkinside Gen UI */}
       <LinearGradient
         colors={[
-          'rgba(248, 168, 120, 0.38)',
-          'rgba(217, 126, 78, 0.22)',
-          'rgba(140, 68, 36, 0.10)',
+          'rgba(139, 92, 246, 0.38)',
+          'rgba(56, 189, 248, 0.18)',
+          'rgba(236, 72, 153, 0.08)',
           'transparent',
         ]}
         start={{ x: 0.5, y: 0 }}
@@ -104,7 +104,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onStart }) =
             activeOpacity={0.85}
           >
             <Text style={styles.startButtonText}>Start Now</Text>
-            <Ionicons name="arrow-forward" size={18} color="#000000" style={styles.arrowIcon} />
+            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={styles.arrowIcon} />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -115,7 +115,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onStart }) =
 const styles = StyleSheet.create({
   container: {
     ...commonStyles.flex1,
-    backgroundColor: '#0D0D11',
+    backgroundColor: '#07070A',
   },
   ambientGlow: {
     position: 'absolute',
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     width: 3,
     height: 14,
     borderRadius: radius.xxs,
-    backgroundColor: colors.textPrimary,
+    backgroundColor: colors.primary,
   },
   startButton: {
     ...commonStyles.rowCenter,
@@ -191,12 +191,12 @@ const styles = StyleSheet.create({
     width: '68%',
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.45,
     shadowRadius: 16,
     elevation: 8,
   },
   startButtonText: {
-    color: '#000000',
+    color: '#FFFFFF',
     fontSize: fontSizes.subtitle,
     fontWeight: fontWeights.bold,
   },

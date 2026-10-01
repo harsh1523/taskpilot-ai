@@ -14,8 +14,8 @@ export interface PriorityOption {
 
 export const PRIORITY_OPTIONS: PriorityOption[] = [
   { key: 'urgent', label: 'Urgent', color: '#EF4444', icon: 'flame' },
-  { key: 'high', label: 'High', color: '#F97316', icon: 'alert-circle' },
-  { key: 'medium', label: 'Medium', color: '#F8A878', icon: 'time' },
+  { key: 'high', label: 'High', color: '#FB923C', icon: 'alert-circle' },
+  { key: 'medium', label: 'Medium', color: '#A78BFA', icon: 'time' },
   { key: 'low', label: 'Low', color: '#34D399', icon: 'leaf' },
 ];
 
@@ -47,7 +47,7 @@ export const PrioritySelector: React.FC<PrioritySelectorProps> = ({
               key={item.key}
               style={[
                 styles.pillButton,
-                { borderColor: isSelected ? item.color : colors.cardBorder },
+                { borderColor: isSelected ? item.color : 'rgba(255, 255, 255, 0.08)' },
                 isSelected && { backgroundColor: `${item.color}22` },
               ]}
               onPress={() => handleSelect(item.key)}
@@ -85,8 +85,13 @@ export const PrioritySelector: React.FC<PrioritySelectorProps> = ({
             style={[
               styles.rowButton,
               isSelected && {
-                backgroundColor: item.color,
+                backgroundColor: `${item.color}22`,
                 borderColor: item.color,
+                shadowColor: item.color,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.35,
+                shadowRadius: 6,
+                elevation: 3,
               },
             ]}
             onPress={() => handleSelect(item.key)}
@@ -95,13 +100,13 @@ export const PrioritySelector: React.FC<PrioritySelectorProps> = ({
             <Ionicons
               name={item.icon}
               size={14}
-              color={isSelected ? '#151518' : item.color}
+              color={item.color}
               style={styles.rowIcon}
             />
             <Text
               style={[
                 styles.rowText,
-                { color: isSelected ? '#151518' : item.color },
+                { color: isSelected ? '#FFFFFF' : '#8A8A9E' },
                 isSelected && styles.rowTextActive,
               ]}
             >
@@ -117,23 +122,23 @@ export const PrioritySelector: React.FC<PrioritySelectorProps> = ({
 const styles = StyleSheet.create({
   rowContainer: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   rowButton: {
     ...commonStyles.flex1,
     ...commonStyles.rowCenter,
-    paddingVertical: spacing.base,
-    borderRadius: radius.xl,
-    backgroundColor: '#181822',
+    paddingVertical: spacing.md,
+    borderRadius: 16,
+    backgroundColor: 'rgba(18, 18, 28, 0.75)',
     borderWidth: 1,
-    borderColor: '#262636',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   rowIcon: {
-    marginRight: spacing.xs + 1,
+    marginRight: spacing.xs,
   },
   rowText: {
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.bold,
+    fontWeight: fontWeights.semibold,
   },
   rowTextActive: {
     fontWeight: fontWeights.heavy,
@@ -141,14 +146,14 @@ const styles = StyleSheet.create({
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   pillButton: {
     ...commonStyles.row,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: radius.xxl,
-    backgroundColor: '#161620',
+    backgroundColor: 'rgba(18, 18, 28, 0.75)',
     borderWidth: 1,
   },
   pillIcon: {

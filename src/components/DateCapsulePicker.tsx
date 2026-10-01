@@ -100,7 +100,7 @@ export const DateCapsulePicker: React.FC<DateCapsulePickerProps> = ({
                   onPress={() => handlePress(item)}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="add" size={16} color="#787884" />
+                  <Ionicons name="add" size={16} color={colors.primaryLight} />
                   <Text style={styles.dashedDayText}>{item.day}</Text>
                   <Text style={styles.dashedMonthText}>{item.month}</Text>
                 </TouchableOpacity>
@@ -110,7 +110,7 @@ export const DateCapsulePicker: React.FC<DateCapsulePickerProps> = ({
 
           return (
             <View key={item.id} style={styles.capsuleWrapper}>
-              {/* Concentric pill aura rings that strictly follow the exact pill shape of the button */}
+              {/* Concentric aura glow for selected date capsule */}
               {isSelected && (
                 <>
                   <View style={styles.pillAuraOuter} pointerEvents="none" />
@@ -152,6 +152,8 @@ export const DateCapsulePicker: React.FC<DateCapsulePickerProps> = ({
                 >
                   {item.weekday || 'Day'}
                 </Text>
+
+                {isSelected && <View style={styles.selectedIndicatorDot} />}
               </TouchableOpacity>
             </View>
           );
@@ -163,45 +165,46 @@ export const DateCapsulePicker: React.FC<DateCapsulePickerProps> = ({
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginVertical: spacing.xs,
+    marginVertical: spacing.xxs,
   },
   container: {
     paddingHorizontal: padding.screenHorizontal,
-    paddingVertical: spacing.lg,
-    gap: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.md + 2,
     alignItems: 'center',
   },
   capsuleWrapper: {
     width: 54,
-    height: 102,
+    height: 104,
     position: 'relative',
     ...commonStyles.center,
     overflow: 'visible',
   },
   capsule: {
     width: 54,
-    height: 102,
+    height: 104,
     borderRadius: 27,
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.lg - 2,
     zIndex: 2,
   },
   capsuleNormal: {
-    backgroundColor: '#1E1E22',
+    backgroundColor: 'rgba(16, 16, 26, 0.75)',
     borderWidth: 1,
-    borderColor: '#2A2A32',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  // Zero rectangular box-shadow or blur: pure clean pill button
   capsuleSelected: {
     backgroundColor: colors.primary,
-    shadowColor: 'transparent',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    elevation: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    elevation: 8,
   },
-  // Pure geometric pill aura layers: exact width / 2 border radii
+  // Pure geometric pill aura layers in electric violet
   pillAuraInner: {
     position: 'absolute',
     top: -2.5,
@@ -209,7 +212,7 @@ const styles = StyleSheet.create({
     left: -2.5,
     right: -2.5,
     borderRadius: 29.5,
-    backgroundColor: 'rgba(248, 168, 120, 0.32)',
+    backgroundColor: 'rgba(139, 92, 246, 0.35)',
     zIndex: 1,
   },
   pillAuraMid: {
@@ -219,7 +222,7 @@ const styles = StyleSheet.create({
     left: -6,
     right: -6,
     borderRadius: 33,
-    backgroundColor: 'rgba(248, 168, 120, 0.16)',
+    backgroundColor: 'rgba(139, 92, 246, 0.18)',
     zIndex: 0,
   },
   pillAuraOuter: {
@@ -229,29 +232,36 @@ const styles = StyleSheet.create({
     left: -10,
     right: -10,
     borderRadius: 37,
-    backgroundColor: 'rgba(248, 168, 120, 0.07)',
+    backgroundColor: 'rgba(139, 92, 246, 0.08)',
     zIndex: -1,
+  },
+  selectedIndicatorDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+    marginTop: 2,
   },
   dashedCapsule: {
     width: 54,
-    height: 102,
+    height: 104,
     borderRadius: 27,
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.lg,
-    borderWidth: 1.5,
-    borderColor: '#3D3D48',
+    paddingVertical: spacing.lg - 2,
+    borderWidth: 1.2,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     borderStyle: 'dashed',
-    backgroundColor: 'rgba(28, 28, 34, 0.4)',
+    backgroundColor: 'rgba(16, 16, 26, 0.4)',
   },
   monthBadgeText: {
-    color: '#828290',
+    color: '#7E7E94',
     fontSize: fontSizes.tiny,
     fontWeight: fontWeights.bold,
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
   monthBadgeTextSelected: {
-    color: '#151518',
+    color: 'rgba(255, 255, 255, 0.85)',
     fontWeight: fontWeights.heavy,
   },
   dayText: {
@@ -260,26 +270,26 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.heavy,
   },
   dayTextSelected: {
-    color: '#151518',
+    color: '#FFFFFF',
     fontWeight: '900',
     fontSize: fontSizes.titleMd,
   },
   weekdayText: {
-    color: '#767682',
+    color: '#6C6C82',
     fontSize: fontSizes.xs,
     fontWeight: fontWeights.semibold,
   },
   weekdayTextSelected: {
-    color: '#151518',
+    color: '#FFFFFF',
     fontWeight: fontWeights.bold,
   },
   dashedDayText: {
-    color: '#8A8A96',
+    color: '#9E9EB4',
     fontSize: fontSizes.subtitle,
     fontWeight: fontWeights.bold,
   },
   dashedMonthText: {
-    color: '#6A6A76',
+    color: '#6C6C82',
     fontSize: fontSizes.tiny,
     fontWeight: fontWeights.semibold,
   },

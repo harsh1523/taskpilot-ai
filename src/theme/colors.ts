@@ -1,59 +1,71 @@
 export const colors = {
-  // Dark obsidian theme
-  background: '#0D0D11',
-  backgroundGlow: '#2D1A10',
-  surface: '#1A1A1E',
-  surfaceLight: '#242429',
-  surfaceBorder: '#2E2E36',
-  surfaceBorderLight: '#3D3D48',
+  // Milkinside Gen UI - Deep space velvety obsidian
+  background: '#07070A',
+  backgroundGlow: '#120D1D',
+  surface: '#0F0F16',
+  surfaceLight: '#161622',
+  surfaceBorder: 'rgba(255, 255, 255, 0.08)',
+  surfaceBorderLight: 'rgba(255, 255, 255, 0.14)',
 
-  // Signature Warm Peach / Salmon from screenshots
-  primary: '#F8A878',
-  primaryDark: '#DF8B5A',
-  primaryLight: '#FFC2A1',
-  primaryGlow: 'rgba(248, 168, 120, 0.25)',
-  primaryMuted: 'rgba(248, 168, 120, 0.12)',
+  // Signature Gen UI Accents (Electric Violet & Aurora)
+  primary: '#8B5CF6',
+  primaryDark: '#7C3AED',
+  primaryLight: '#A78BFA',
+  primaryGlow: 'rgba(139, 92, 246, 0.32)',
+  primaryMuted: 'rgba(139, 92, 246, 0.14)',
 
-  // Soft Icy Blue / White (used in PM toggle & Clock center disc)
-  iceWhite: '#E8F1F5',
-  iceWhiteDark: '#D4E2E8',
-  iceWhiteText: '#18181B',
+  // Aurora Highlights
+  cyan: '#38BDF8',
+  cyanGlow: 'rgba(56, 189, 248, 0.28)',
+  rose: '#EC4899',
+  amber: '#FB923C',
+  violet: '#8B5CF6',
 
-  // Bottom Sheet White Card
+  // Soft Icy Blue / White
+  iceWhite: '#F1F5F9',
+  iceWhiteDark: '#CBD5E1',
+  iceWhiteText: '#07070A',
+
+  // Sheet / Modal surfaces
   sheetWhite: '#FFFFFF',
-  sheetInput: '#EDEDF0',
-  sheetDarkBtn: '#18181A',
+  sheetInput: '#EDEDF2',
+  sheetDarkBtn: '#0E0E14',
 
   // Accent & Voice
-  accent: '#F8A878',
-  accentGlow: 'rgba(248, 168, 120, 0.2)',
-  voiceActive: '#F8A878',
-  voiceActiveGlow: 'rgba(248, 168, 120, 0.35)',
+  accent: '#EC4899',
+  accentGlow: 'rgba(236, 72, 153, 0.28)',
+  voiceActive: '#8B5CF6',
+  voiceActiveGlow: 'rgba(139, 92, 246, 0.45)',
 
   // Text hierarchy
   textPrimary: '#FFFFFF',
-  textSecondary: '#9A9AA2',
-  textMuted: '#666670',
-  textDark: '#121214',
+  textSecondary: '#9494A8',
+  textMuted: '#5C5C70',
+  textDark: '#07070A',
 
   // Semantic
   success: '#34D399',
   warning: '#FBBF24',
   danger: '#F87171',
 
-  // Additional surface & card tokens
-  card: '#14141A',
-  cardAlt: '#16161F',
-  cardBorder: '#22222E',
-  inputBg: '#1A1A1E',
-  border: '#242432',
-  divider: '#1E1E28',
+  // Frosted Glass & Surface Card tokens
+  card: 'rgba(16, 16, 24, 0.88)',
+  cardAlt: 'rgba(22, 22, 32, 0.92)',
+  cardBorder: 'rgba(255, 255, 255, 0.08)',
+  cardBorderGlow: 'rgba(139, 92, 246, 0.35)',
+  inputBg: 'rgba(20, 20, 30, 0.8)',
+  border: 'rgba(255, 255, 255, 0.08)',
+  divider: 'rgba(255, 255, 255, 0.06)',
 
   // Gradients
   gradients: {
-    ambient: ['rgba(248, 168, 120, 0.14)', 'rgba(217, 126, 78, 0.04)', 'transparent'] as const,
-    techna: ['#A855F7', '#EC4899', '#F97316'] as const,
+    ambient: ['rgba(139, 92, 246, 0.18)', 'rgba(56, 189, 248, 0.07)', 'transparent'] as const,
+    ambientWarm: ['rgba(251, 146, 60, 0.14)', 'rgba(236, 72, 153, 0.08)', 'transparent'] as const,
+    gen: ['#8B5CF6', '#EC4899', '#FB923C'] as const,
+    techna: ['#8B5CF6', '#EC4899', '#FB923C'] as const,
     technaOrb: ['#38BDF8', '#818CF8', '#C084FC', '#F472B6', '#FB923C'] as const,
+    aurora: ['#38BDF8', '#818CF8', '#C084FC'] as const,
+    activePill: ['#8B5CF6', '#7C3AED'] as const,
   },
 
   priorities: {
@@ -63,13 +75,13 @@ export const colors = {
       label: 'Urgent',
     },
     high: {
-      color: '#F97316',
-      bg: 'rgba(249, 115, 22, 0.16)',
+      color: '#FB923C',
+      bg: 'rgba(251, 146, 60, 0.16)',
       label: 'High',
     },
     medium: {
-      color: '#F8A878',
-      bg: 'rgba(248, 168, 120, 0.16)',
+      color: '#A78BFA',
+      bg: 'rgba(167, 139, 250, 0.16)',
       label: 'Medium',
     },
     low: {
@@ -80,12 +92,12 @@ export const colors = {
   },
 
   categories: {
-    Work: '#F8A878',
-    Personal: '#93C5FD',
+    Work: '#A78BFA',
+    Personal: '#38BDF8',
     Urgent: '#F87171',
     Health: '#34D399',
     Finance: '#FBBF24',
-    General: '#A78BFA',
+    General: '#C084FC',
   },
 };
 
