@@ -713,24 +713,6 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
               </View>
             )}
           </View>
-
-          {/* Primary Save Task Button */}
-          <TouchableOpacity
-            style={styles.bottomSaveButton}
-            onPress={handleSave}
-            activeOpacity={0.85}
-            accessibilityLabel="Save task"
-          >
-            <LinearGradient
-              colors={colors.gradients.techna}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.bottomSaveGradient}
-            >
-              <Ionicons name="checkmark-circle" size={20} color="#151518" style={{ marginRight: 8 }} />
-              <Text style={styles.bottomSaveBtnText}>Save Task</Text>
-            </LinearGradient>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

@@ -698,29 +698,6 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
             </View>
           )}
 
-          {/* Manual Save Task Button when title is entered */}
-          {taskTitle.trim().length > 0 && currentStep !== 'done' && (
-            <TouchableOpacity
-              style={styles.modalSaveTaskBtn}
-              onPress={() => {
-                playSpinnerTickSound(1100);
-                finalizeAndSave(selectedPriority, taskTitle, selectedDate, selectedTimeRange);
-              }}
-              activeOpacity={0.85}
-              accessibilityLabel="Save Task"
-            >
-              <LinearGradient
-                colors={colors.gradients.techna}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.modalSaveTaskGradient}
-              >
-                <Ionicons name="checkmark-circle" size={18} color="#151518" style={{ marginRight: 6 }} />
-                <Text style={styles.modalSaveTaskBtnText}>Save Task</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-
           {/* Mic Toggle Bar at bottom */}
           <TouchableOpacity
             style={[styles.micActionRow, isListening && styles.micActionRowActive]}
