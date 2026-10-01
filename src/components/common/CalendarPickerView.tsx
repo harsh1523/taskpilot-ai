@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors, spacing, radius, fontSizes, fontWeights, commonStyles } from '../../theme';
@@ -19,6 +19,12 @@ export const CalendarPickerView: React.FC<CalendarPickerViewProps> = ({
 }) => {
   const [calYear, setCalYear] = useState<number>(() => selectedDate.getFullYear());
   const [calMonth, setCalMonth] = useState<number>(() => selectedDate.getMonth());
+
+  // Keep calendar month & year in sync if selectedDate prop changes
+  useEffect(() => {
+    setCalYear(selectedDate.getFullYear());
+    setCalMonth(selectedDate.getMonth());
+  }, [selectedDate.getFullYear(), selectedDate.getMonth()]);
 
   const triggerHaptic = () => {
     if (Platform.OS !== 'web') {
@@ -114,81 +120,86 @@ export const CalendarPickerView: React.FC<CalendarPickerViewProps> = ({
   // Calculate upcoming weekend date (Saturday)
   const currentDayOfWeek = today.getDay();
   const daysUntilSaturday = currentDayOfWeek === 6 ? 7 : (6 - currentDayOfWeek);
-  const nextWeekDays = 7;
+  const weekendDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + daysUntilSaturday);
+  const nextWeekDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7);
+
+  const presets: {
+    key: string;
+    label: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    offset: number;
+    isActive: boolean;
+  }[] = [
+    {
+      key: 'today',
+      label: 'Today',
+      icon: 'today-outline',
+      offset: 0,
+      isActive: isSameDay(selectedDate, today),
+    },
+    {
+      key: 'tomorrow',
+      label: 'Tomorrow',
+      icon: 'calendar-outline',
+      offset: 1,
+      isActive: isSameDay(selectedDate, tomorrow),
+    },
+    {
+      key: 'weekend',
+      label: 'Weekend',
+      icon: 'cafe-outline',
+      offset: daysUntilSaturday,
+      isActive: isSameDay(selectedDate, weekendDate),
+    },
+    {
+      key: 'next_week',
+      label: '+1 Wk',
+      icon: 'arrow-forward-outline',
+      offset: 7,
+      isActive: isSameDay(selectedDate, nextWeekDate),
+    },
+  ];
 
   return (
     <View style={styles.cardContainer}>
       {/* Subtle Top Ambient Lighting Glow */}
       <View style={styles.ambientTopGlow} pointerEvents="none" />
 
-      {/* 1. Glassmorphism Quick Presets Pills */}
-      <View style={styles.quickDateRow}>
-        <TouchableOpacity
-          style={[
-            styles.quickDateBtn,
-            isSameDay(selectedDate, today) && styles.quickDateBtnActive,
-          ]}
-          onPress={() => handleQuickJumpDate(0, 'Today')}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name="today-outline"
-            size={13}
-            color={isSameDay(selectedDate, today) ? '#151518' : colors.primary}
-            style={{ marginRight: 4 }}
-          />
-          <Text
+      {/* 1. Glassmorphism Quick Presets Pills (Horizontal scrollable, no collision/cramping) */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.quickDateScrollView}
+        contentContainerStyle={styles.quickDateScrollContent}
+      >
+        {presets.map((preset) => (
+          <TouchableOpacity
+            key={preset.key}
             style={[
-              styles.quickDateBtnText,
-              isSameDay(selectedDate, today) && styles.quickDateBtnTextActive,
+              styles.quickDateBtn,
+              preset.isActive && styles.quickDateBtnActive,
             ]}
+            onPress={() => handleQuickJumpDate(preset.offset, preset.label)}
+            activeOpacity={0.8}
           >
-            Today
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.quickDateBtn,
-            isSameDay(selectedDate, tomorrow) && styles.quickDateBtnActive,
-          ]}
-          onPress={() => handleQuickJumpDate(1, 'Tomorrow')}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name="calendar-outline"
-            size={13}
-            color={isSameDay(selectedDate, tomorrow) ? '#151518' : colors.primary}
-            style={{ marginRight: 4 }}
-          />
-          <Text
-            style={[
-              styles.quickDateBtnText,
-              isSameDay(selectedDate, tomorrow) && styles.quickDateBtnTextActive,
-            ]}
-          >
-            Tomorrow
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickDateBtn}
-          onPress={() => handleQuickJumpDate(daysUntilSaturday, '')}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="cafe-outline" size={13} color="#9090A2" style={{ marginRight: 4 }} />
-          <Text style={styles.quickDateBtnText}>Weekend</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickDateBtn}
-          onPress={() => handleQuickJumpDate(nextWeekDays, '')}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="arrow-forward-outline" size={13} color="#9090A2" style={{ marginRight: 4 }} />
-          <Text style={styles.quickDateBtnText}>+1 Wk</Text>
-        </TouchableOpacity>
-      </View>
+            <Ionicons
+              name={preset.icon}
+              size={13}
+              color={preset.isActive ? '#FFFFFF' : '#8A8A9E'}
+              style={styles.quickDateIcon}
+            />
+            <Text
+              style={[
+                styles.quickDateBtnText,
+                preset.isActive && styles.quickDateBtnTextActive,
+              ]}
+              numberOfLines={1}
+            >
+              {preset.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       {/* 2. Glassmorphic Month Navigator Header */}
       <View style={styles.calendarMonthHeader}>
@@ -277,7 +288,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
-    padding: spacing.lg,
+    padding: spacing.md + 2,
     marginTop: spacing.sm,
     marginBottom: spacing.base,
     position: 'relative',
@@ -297,17 +308,25 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(139, 92, 246, 0.12)',
     borderRadius: 40,
   },
-  quickDateRow: {
+  quickDateScrollView: {
+    marginBottom: spacing.base,
+    marginHorizontal: -spacing.xs,
+  },
+  quickDateScrollContent: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
+    gap: 8,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    alignItems: 'center',
   },
   quickDateBtn: {
-    ...commonStyles.flex1,
-    ...commonStyles.rowCenter,
-    paddingVertical: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 13,
     borderRadius: 14,
-    backgroundColor: 'rgba(24, 24, 36, 0.75)',
+    backgroundColor: 'rgba(28, 28, 40, 0.75)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
@@ -316,9 +335,12 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.45,
+    shadowOpacity: 0.5,
     shadowRadius: 8,
     elevation: 4,
+  },
+  quickDateIcon: {
+    marginRight: 5,
   },
   quickDateBtnText: {
     color: '#8A8A9E',
