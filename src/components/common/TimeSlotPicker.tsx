@@ -34,27 +34,6 @@ export const DURATION_OPTIONS: DurationOption[] = [
   { minutes: 180, label: '3h' },
 ];
 
-const HORIZON_HOURS = [
-  { hour24: 6, label: '6 AM' },
-  { hour24: 7, label: '7 AM' },
-  { hour24: 8, label: '8 AM' },
-  { hour24: 9, label: '9 AM' },
-  { hour24: 10, label: '10 AM' },
-  { hour24: 11, label: '11 AM' },
-  { hour24: 12, label: '12 PM' },
-  { hour24: 13, label: '1 PM' },
-  { hour24: 14, label: '2 PM' },
-  { hour24: 15, label: '3 PM' },
-  { hour24: 16, label: '4 PM' },
-  { hour24: 17, label: '5 PM' },
-  { hour24: 18, label: '6 PM' },
-  { hour24: 19, label: '7 PM' },
-  { hour24: 20, label: '8 PM' },
-  { hour24: 21, label: '9 PM' },
-  { hour24: 22, label: '10 PM' },
-  { hour24: 23, label: '11 PM' },
-];
-
 const minuteOptions = [0, 15, 30, 45];
 
 interface TimeSlotPickerProps {
@@ -103,36 +82,6 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
       return h12 === 12 ? 12 : h12 + 12;
     }
     return h12 === 12 ? 0 : h12;
-  };
-
-  // Select an hour on the fluid horizon track
-  const handleSelectHorizonHour = (h24: number) => {
-    playSpinnerTickSound(900);
-    triggerHaptic();
-
-    if (activeTarget === 'start') {
-      const range = computeTimeRange(h24, selectedDuration, startMinute);
-      const occ = checkSlotConflict(range.startMinutes, selectedDuration, occupiedSchedule);
-      onSelectSlot({
-        startHour: h24,
-        rangeString: range.rangeString,
-        isOccupied: occ.occupied,
-      });
-    } else {
-      const newEndTotal = h24 * 60 + endMinute;
-      let newDuration = newEndTotal - startTotalMinutes;
-      if (newDuration <= 0) {
-        newDuration += 1440;
-      }
-      onSelectDuration(newDuration);
-      const range = computeTimeRange(selectedStartHour, newDuration, startMinute);
-      const occ = checkSlotConflict(startTotalMinutes, newDuration, occupiedSchedule);
-      onSelectSlot({
-        startHour: selectedStartHour,
-        rangeString: range.rangeString,
-        isOccupied: occ.occupied,
-      });
-    }
   };
 
   // Step active hour by +/- 1
@@ -252,26 +201,24 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
       ? `${selectedDuration / 60}h`
       : `${(selectedDuration / 60).toFixed(1)}h`;
 
-  const activeColor = activeTarget === 'start' ? '#34D399' : colors.primary;
-
   return (
     <View style={styles.container}>
-      {/* ================= MILKINSIDE GEN UI HERO CARD ================= */}
+      {/* ================= MILKINSIDE GEN UI CARD ================= */}
       <View style={styles.genCard}>
-        {/* Soft Ambient Aurora Glow behind Hero */}
+        {/* Soft Ambient Aurora Glow */}
         <LinearGradient
-          colors={['rgba(139, 92, 246, 0.16)', 'rgba(56, 189, 248, 0.08)', 'transparent']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          colors={['rgba(139, 92, 246, 0.18)', 'rgba(56, 189, 248, 0.06)', 'transparent']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
           style={styles.ambientGlow}
           pointerEvents="none"
         />
 
-        {/* Top Header: Gen UI Badge & Proactive Status */}
-        <View style={styles.genHeaderRow}>
-          <View style={styles.genBadge}>
-            <Ionicons name="sparkles" size={11} color="#A78BFA" style={{ marginRight: 5 }} />
-            <Text style={styles.genBadgeText}>GEN UI SCHEDULE</Text>
+        {/* Header: Title Badge & Status Pill */}
+        <View style={styles.headerRow}>
+          <View style={styles.titleBadge}>
+            <Ionicons name="time" size={12} color={colors.primaryLight} style={{ marginRight: 5 }} />
+            <Text style={styles.titleBadgeText}>SCHEDULE TIME</Text>
           </View>
 
           <View
@@ -279,8 +226,8 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
               styles.statusPill,
               {
                 backgroundColor: currentSlotOccupied.occupied
-                  ? 'rgba(239, 68, 68, 0.14)'
-                  : 'rgba(52, 211, 153, 0.14)',
+                  ? 'rgba(239, 68, 68, 0.12)'
+                  : 'rgba(52, 211, 153, 0.12)',
                 borderColor: currentSlotOccupied.occupied
                   ? 'rgba(239, 68, 68, 0.3)'
                   : 'rgba(52, 211, 153, 0.3)',
@@ -289,13 +236,13 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
           >
             <View
               style={[
-                styles.statusPillDot,
+                styles.statusDot,
                 { backgroundColor: currentSlotOccupied.occupied ? '#EF4444' : '#34D399' },
               ]}
             />
             <Text
               style={[
-                styles.statusPillText,
+                styles.statusText,
                 { color: currentSlotOccupied.occupied ? '#F87171' : '#34D399' },
               ]}
             >
@@ -304,13 +251,13 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
           </View>
         </View>
 
-        {/* Hero Time Readout (Floating Glass Capsules) */}
-        <View style={styles.heroTimeRow}>
-          {/* Start Capsule */}
+        {/* Start & End Dual Cards */}
+        <View style={styles.dualCardsRow}>
+          {/* Start Card */}
           <TouchableOpacity
             style={[
-              styles.heroCapsule,
-              activeTarget === 'start' && styles.heroCapsuleActiveStart,
+              styles.timeCard,
+              activeTarget === 'start' && styles.timeCardActive,
             ]}
             onPress={() => {
               playSpinnerTickSound(850);
@@ -319,38 +266,43 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
             }}
             activeOpacity={0.8}
           >
-            <View style={styles.capsuleTopLabelRow}>
-              <View style={[styles.microDot, { backgroundColor: '#34D399' }]} />
-              <Text style={[styles.capsuleTopLabel, activeTarget === 'start' && { color: '#34D399' }]}>
+            <View style={styles.cardHeaderRow}>
+              <View
+                style={[
+                  styles.cardIndicatorDot,
+                  { backgroundColor: activeTarget === 'start' ? colors.primaryLight : '#606072' },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.cardLabel,
+                  activeTarget === 'start' && styles.cardLabelActive,
+                ]}
+              >
                 START
               </Text>
             </View>
-            <Text style={styles.capsuleDigits}>
-              {String(start12Hour).padStart(2, '0')}:{String(startMinute).padStart(2, '0')}
-            </Text>
-            <Text style={[styles.capsulePeriod, { color: isStartPm ? colors.primary : '#34D399' }]}>
-              {isStartPm ? 'PM' : 'AM'}
-            </Text>
+            <View style={styles.timeDigitsRow}>
+              <Text style={styles.cardDigits}>
+                {String(start12Hour).padStart(2, '0')}:{String(startMinute).padStart(2, '0')}
+              </Text>
+              <Text style={styles.cardMeridiem}>{isStartPm ? 'PM' : 'AM'}</Text>
+            </View>
           </TouchableOpacity>
 
-          {/* Floating Duration Bridge */}
-          <View style={styles.durationBridge}>
-            <LinearGradient
-              colors={['#8B5CF6', '#EC4899', '#FB923C']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.durationBridgeGradient}
-            >
-              <Ionicons name="arrow-forward" size={11} color="#FFFFFF" style={{ marginRight: 3 }} />
-              <Text style={styles.durationBridgeText}>{durLabel}</Text>
-            </LinearGradient>
+          {/* Duration Indicator Arrow */}
+          <View style={styles.bridgeContainer}>
+            <View style={styles.bridgePill}>
+              <Text style={styles.bridgeText}>{durLabel}</Text>
+              <Ionicons name="arrow-forward" size={11} color={colors.primaryLight} style={{ marginLeft: 3 }} />
+            </View>
           </View>
 
-          {/* End Capsule */}
+          {/* End Card */}
           <TouchableOpacity
             style={[
-              styles.heroCapsule,
-              activeTarget === 'end' && styles.heroCapsuleActiveEnd,
+              styles.timeCard,
+              activeTarget === 'end' && styles.timeCardActive,
             ]}
             onPress={() => {
               playSpinnerTickSound(850);
@@ -359,191 +311,146 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
             }}
             activeOpacity={0.8}
           >
-            <View style={styles.capsuleTopLabelRow}>
-              <View style={[styles.microDot, { backgroundColor: colors.primary }]} />
-              <Text style={[styles.capsuleTopLabel, activeTarget === 'end' && { color: colors.primary }]}>
+            <View style={styles.cardHeaderRow}>
+              <View
+                style={[
+                  styles.cardIndicatorDot,
+                  { backgroundColor: activeTarget === 'end' ? colors.primaryLight : '#606072' },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.cardLabel,
+                  activeTarget === 'end' && styles.cardLabelActive,
+                ]}
+              >
                 END
               </Text>
             </View>
-            <Text style={styles.capsuleDigits}>
-              {String(end12Hour).padStart(2, '0')}:{String(endMinute).padStart(2, '0')}
-            </Text>
-            <Text style={[styles.capsulePeriod, { color: isEndPm ? colors.primary : '#34D399' }]}>
-              {isEndPm ? 'PM' : 'AM'}
-            </Text>
+            <View style={styles.timeDigitsRow}>
+              <Text style={styles.cardDigits}>
+                {String(end12Hour).padStart(2, '0')}:{String(endMinute).padStart(2, '0')}
+              </Text>
+              <Text style={styles.cardMeridiem}>{isEndPm ? 'PM' : 'AM'}</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
-        {/* ================= FLUID TIME HORIZON ================= */}
-        <View style={styles.horizonSection}>
-          <View style={styles.horizonLabelRow}>
-            <Text style={styles.horizonHeading}>TIME HORIZON</Text>
-            <Text style={styles.horizonSub}>Slide or tap to shift window</Text>
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizonScroll}
-          >
-            {HORIZON_HOURS.map((h) => {
-              const isStart = selectedStartHour === h.hour24;
-              const isEnd = endHour24 === h.hour24;
-              const isInRange =
-                selectedStartHour < endHour24
-                  ? h.hour24 >= selectedStartHour && h.hour24 <= endHour24
-                  : h.hour24 >= selectedStartHour || h.hour24 <= endHour24;
-
-              const occ = checkSlotConflict(h.hour24 * 60, selectedDuration, occupiedSchedule);
-
-              return (
-                <TouchableOpacity
-                  key={`horizon_${h.hour24}`}
-                  style={[
-                    styles.horizonCell,
-                    isInRange && styles.horizonCellInRange,
-                    isStart && styles.horizonCellStart,
-                    isEnd && styles.horizonCellEnd,
-                  ]}
-                  onPress={() => handleSelectHorizonHour(h.hour24)}
-                  activeOpacity={0.75}
-                >
-                  {isInRange && (
-                    <LinearGradient
-                      colors={
-                        isStart
-                          ? ['#34D399', 'rgba(52, 211, 153, 0.4)']
-                          : isEnd
-                          ? ['#FB923C', 'rgba(251, 146, 60, 0.4)']
-                          : ['rgba(139, 92, 246, 0.3)', 'rgba(56, 189, 248, 0.3)']
-                      }
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 0, y: 1 }}
-                      style={styles.horizonCellGradient}
-                    />
-                  )}
-
-                  <Text
-                    style={[
-                      styles.horizonCellText,
-                      isInRange && styles.horizonCellTextActive,
-                      (isStart || isEnd) && styles.horizonCellTextBoundary,
-                    ]}
-                  >
-                    {h.label}
-                  </Text>
-
-                  {occ.occupied && !isInRange && (
-                    <View style={styles.horizonConflictPip} />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-
-        {/* ================= STREAMLINED TACTILE CONTROLS ================= */}
-        <View style={styles.tactileControlsRow}>
-          {/* Hour Stepper */}
-          <View style={styles.stepperContainer}>
+        {/* Interactive Tactile Time Dial (Adjusting Active Target) */}
+        <View style={styles.dialCard}>
+          <View style={styles.dialStepperRow}>
+            {/* Decrement Button */}
             <TouchableOpacity
-              style={styles.stepperBtn}
+              style={styles.dialStepBtn}
               onPress={() => handleStepHour(-1)}
               activeOpacity={0.7}
+              accessibilityLabel="Decrease hour"
             >
-              <Ionicons name="remove" size={16} color="#FFFFFF" />
+              <Ionicons name="remove" size={20} color="#FFFFFF" />
             </TouchableOpacity>
 
-            <View style={styles.stepperCenter}>
-              <Text style={styles.stepperDigits}>{String(active12Hour).padStart(2, '0')}</Text>
-              <Text style={styles.stepperLabel}>HOUR</Text>
+            {/* Large Digits Display */}
+            <View style={styles.dialDigitsGroup}>
+              <Text style={styles.dialBigNumber}>
+                {String(active12Hour).padStart(2, '0')}
+              </Text>
+              <Text style={styles.dialColon}>:</Text>
+              <Text style={styles.dialBigNumber}>
+                {String(activeMinute).padStart(2, '0')}
+              </Text>
+              <View style={styles.dialActiveBadge}>
+                <Text style={styles.dialActiveBadgeText}>{activeIsPm ? 'PM' : 'AM'}</Text>
+              </View>
             </View>
 
+            {/* Increment Button */}
             <TouchableOpacity
-              style={styles.stepperBtn}
+              style={styles.dialStepBtn}
               onPress={() => handleStepHour(1)}
               activeOpacity={0.7}
+              accessibilityLabel="Increase hour"
             >
-              <Ionicons name="add" size={16} color="#FFFFFF" />
+              <Ionicons name="add" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
-          {/* Minute Selector Pills */}
-          <View style={styles.minutePillsGroup}>
-            {minuteOptions.map((m) => {
-              const isSelected = activeMinute === m;
-              return (
-                <TouchableOpacity
-                  key={`min_${m}`}
+          {/* AM/PM Switcher & Minute Options */}
+          <View style={styles.dialSubControlsRow}>
+            {/* AM / PM Segmented Capsule */}
+            <View style={styles.meridiemSwitch}>
+              <TouchableOpacity
+                style={[
+                  styles.meridiemBtn,
+                  !activeIsPm && styles.meridiemBtnActive,
+                ]}
+                onPress={() => handleToggleMeridiem(false)}
+                activeOpacity={0.8}
+              >
+                <Text
                   style={[
-                    styles.minutePill,
-                    isSelected && {
-                      backgroundColor: activeColor,
-                      borderColor: activeColor,
-                    },
+                    styles.meridiemBtnText,
+                    !activeIsPm && styles.meridiemBtnTextActive,
                   ]}
-                  onPress={() => handleSelectMinute(m)}
-                  activeOpacity={0.75}
                 >
-                  <Text
+                  AM
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.meridiemBtn,
+                  activeIsPm && styles.meridiemBtnActive,
+                ]}
+                onPress={() => handleToggleMeridiem(true)}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.meridiemBtnText,
+                    activeIsPm && styles.meridiemBtnTextActive,
+                  ]}
+                >
+                  PM
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Minute Selector Pills */}
+            <View style={styles.minutePillsRow}>
+              {minuteOptions.map((m) => {
+                const isSelected = activeMinute === m;
+                return (
+                  <TouchableOpacity
+                    key={`min_${m}`}
                     style={[
-                      styles.minutePillText,
-                      isSelected && styles.minutePillTextActive,
+                      styles.minuteChip,
+                      isSelected && styles.minuteChipActive,
                     ]}
+                    onPress={() => handleSelectMinute(m)}
+                    activeOpacity={0.75}
                   >
-                    :{String(m).padStart(2, '0')}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* AM / PM Segmented Capsule */}
-          <View style={styles.meridiemCapsule}>
-            <TouchableOpacity
-              style={[
-                styles.meridiemCapsuleBtn,
-                !activeIsPm && { backgroundColor: activeColor },
-              ]}
-              onPress={() => handleToggleMeridiem(false)}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.meridiemCapsuleText,
-                  !activeIsPm && styles.meridiemCapsuleTextActive,
-                ]}
-              >
-                AM
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.meridiemCapsuleBtn,
-                activeIsPm && { backgroundColor: activeColor },
-              ]}
-              onPress={() => handleToggleMeridiem(true)}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.meridiemCapsuleText,
-                  activeIsPm && styles.meridiemCapsuleTextActive,
-                ]}
-              >
-                PM
-              </Text>
-            </TouchableOpacity>
+                    <Text
+                      style={[
+                        styles.minuteChipText,
+                        isSelected && styles.minuteChipTextActive,
+                      ]}
+                    >
+                      :{String(m).padStart(2, '0')}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         </View>
 
         {/* Quick Duration Preset Pills */}
         <View style={styles.durationSection}>
+          <Text style={styles.durationSectionLabel}>DURATION</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.durationPresetScroll}
+            contentContainerStyle={styles.durationScroll}
           >
             {DURATION_OPTIONS.map((opt) => {
               const isSelected = selectedDuration === opt.minutes;
@@ -551,8 +458,8 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
                 <TouchableOpacity
                   key={opt.minutes}
                   style={[
-                    styles.durationPresetPill,
-                    isSelected && styles.durationPresetPillSelected,
+                    styles.durationPill,
+                    isSelected && styles.durationPillActive,
                   ]}
                   onPress={() => {
                     playSpinnerTickSound(850);
@@ -570,8 +477,8 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
                 >
                   <Text
                     style={[
-                      styles.durationPresetText,
-                      isSelected && styles.durationPresetTextSelected,
+                      styles.durationPillText,
+                      isSelected && styles.durationPillTextActive,
                     ]}
                   >
                     {opt.label}
@@ -604,7 +511,7 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
                 }}
                 activeOpacity={0.8}
               >
-                <Ionicons name="swap-horizontal" size={14} color="#151518" style={{ marginRight: 6 }} />
+                <Ionicons name="swap-horizontal" size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
                 <Text style={styles.shiftButtonText}>
                   Shift to {nextSlotForShift.rangeString}
                 </Text>
@@ -624,7 +531,7 @@ const styles = StyleSheet.create({
 
   // Milkinside Gen UI Card
   genCard: {
-    backgroundColor: 'rgba(16, 16, 24, 0.95)',
+    backgroundColor: 'rgba(16, 16, 26, 0.95)',
     borderRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
@@ -634,7 +541,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.45,
     shadowRadius: 16,
     elevation: 6,
   },
@@ -648,74 +555,65 @@ const styles = StyleSheet.create({
   },
 
   // Header Row
-  genHeaderRow: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: spacing.md,
   },
-  genBadge: {
+  titleBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(139, 92, 246, 0.12)',
-    paddingHorizontal: 8,
+    paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(139, 92, 246, 0.25)',
   },
-  genBadgeText: {
+  titleBadgeText: {
     color: '#C4B5FD',
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.8,
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
+    borderRadius: 12,
     borderWidth: 1,
   },
-  statusPillDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     marginRight: 5,
   },
-  statusPillText: {
-    fontSize: 10,
+  statusText: {
+    fontSize: 11,
     fontWeight: '700',
   },
 
-  // Hero Time Row
-  heroTimeRow: {
+  // Start & End Dual Cards
+  dualCardsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
-  heroCapsule: {
+  timeCard: {
     flex: 1,
-    backgroundColor: 'rgba(24, 24, 36, 0.85)',
+    backgroundColor: 'rgba(22, 22, 34, 0.75)',
     borderRadius: 18,
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.07)',
   },
-  heroCapsuleActiveStart: {
-    backgroundColor: 'rgba(52, 211, 153, 0.08)',
-    borderColor: '#34D399',
-    shadowColor: '#34D399',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  heroCapsuleActiveEnd: {
-    backgroundColor: 'rgba(251, 146, 60, 0.08)',
+  timeCardActive: {
+    backgroundColor: 'rgba(139, 92, 246, 0.14)',
     borderColor: colors.primary,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
@@ -723,267 +621,232 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 4,
   },
-  capsuleTopLabelRow: {
+  cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
   },
-  microDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    marginRight: 5,
+  cardIndicatorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
   },
-  capsuleTopLabel: {
-    color: '#8E8E9E',
+  cardLabel: {
+    color: '#8A8A9E',
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0.7,
   },
-  capsuleDigits: {
+  cardLabelActive: {
+    color: colors.primaryLight,
+  },
+  timeDigitsRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  cardDigits: {
     color: '#FFFFFF',
     fontSize: 22,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
-  capsulePeriod: {
+  cardMeridiem: {
+    color: colors.primaryLight,
     fontSize: 11,
-    fontWeight: '700',
-    marginTop: 2,
+    fontWeight: '800',
   },
-  durationBridge: {
+  bridgeContainer: {
     paddingHorizontal: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  durationBridgeGradient: {
+  bridgePill: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(139, 92, 246, 0.16)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    shadowColor: '#8B5CF6',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+  },
+  bridgeText: {
+    color: '#E0E0FC',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+
+  // Interactive Tactile Time Dial
+  dialCard: {
+    backgroundColor: 'rgba(22, 22, 34, 0.65)',
+    borderRadius: 20,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    marginBottom: spacing.md,
+  },
+  dialStepperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.sm,
+  },
+  dialStepBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(32, 32, 48, 0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dialDigitsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dialBigNumber: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.8,
+  },
+  dialColon: {
+    fontSize: 28,
+    fontWeight: '300',
+    color: '#9494AC',
+    marginHorizontal: 4,
+  },
+  dialActiveBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginLeft: 10,
+  },
+  dialActiveBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+
+  // AM/PM and Minutes row
+  dialSubControlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.md - 2,
+    gap: 8,
+  },
+  meridiemSwitch: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(16, 16, 26, 0.85)',
+    borderRadius: 14,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  meridiemBtn: {
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  meridiemBtnActive: {
+    backgroundColor: colors.primary,
+  },
+  meridiemBtnText: {
+    color: '#8A8A9E',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  meridiemBtnTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+  },
+  minutePillsRow: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(16, 16, 26, 0.85)',
+    borderRadius: 14,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    gap: 2,
+  },
+  minuteChip: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  minuteChipActive: {
+    backgroundColor: colors.primary,
+  },
+  minuteChipText: {
+    color: '#8A8A9E',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  minuteChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+  },
+
+  // Quick Duration Section
+  durationSection: {
+    marginBottom: spacing.xs,
+  },
+  durationSectionLabel: {
+    color: '#7E7E94',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
+  durationScroll: {
+    gap: 6,
+    paddingVertical: 2,
+  },
+  durationPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(24, 24, 36, 0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  durationPillActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 6,
     elevation: 3,
   },
-  durationBridgeText: {
+  durationPillText: {
+    color: '#8E8EA8',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  durationPillTextActive: {
     color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '800',
-  },
-
-  // Time Horizon Section
-  horizonSection: {
-    marginBottom: spacing.md,
-  },
-  horizonLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  horizonHeading: {
-    color: '#A0A0B8',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  horizonSub: {
-    color: '#66667A',
-    fontSize: 10,
-  },
-  horizonScroll: {
-    gap: 6,
-    paddingVertical: 4,
-  },
-  horizonCell: {
-    width: 54,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: 'rgba(26, 26, 38, 0.85)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  horizonCellInRange: {
-    borderColor: 'rgba(139, 92, 246, 0.4)',
-  },
-  horizonCellStart: {
-    borderColor: '#34D399',
-    borderWidth: 1.5,
-  },
-  horizonCellEnd: {
-    borderColor: '#FB923C',
-    borderWidth: 1.5,
-  },
-  horizonCellGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    opacity: 0.9,
-  },
-  horizonCellText: {
-    color: '#8A8A9E',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  horizonCellTextActive: {
-    color: '#FFFFFF',
-  },
-  horizonCellTextBoundary: {
-    color: '#151518',
-    fontWeight: '900',
-  },
-  horizonConflictPip: {
-    position: 'absolute',
-    bottom: 4,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#EF4444',
-  },
-
-  // Tactile Controls Row
-  tactileControlsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: spacing.md,
-  },
-  stepperContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(26, 26, 38, 0.9)',
-    borderRadius: 14,
-    padding: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  stepperBtn: {
-    width: 32,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(38, 38, 54, 0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepperCenter: {
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    minWidth: 42,
-  },
-  stepperDigits: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  stepperLabel: {
-    color: '#76768A',
-    fontSize: 7,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    marginTop: -2,
-  },
-
-  // Minute Pills
-  minutePillsGroup: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: 'rgba(26, 26, 38, 0.9)',
-    borderRadius: 14,
-    padding: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-    justifyContent: 'space-between',
-    gap: 3,
-  },
-  minutePill: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  minutePillText: {
-    color: '#8A8A9E',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  minutePillTextActive: {
-    color: '#151518',
-    fontWeight: '900',
-  },
-
-  // Meridiem Switch
-  meridiemCapsule: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(26, 26, 38, 0.9)',
-    borderRadius: 14,
-    padding: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  meridiemCapsuleBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  meridiemCapsuleText: {
-    color: '#8A8A9E',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  meridiemCapsuleTextActive: {
-    color: '#151518',
-    fontWeight: '900',
-  },
-
-  // Duration Presets Section
-  durationSection: {
-    marginBottom: spacing.xs,
-  },
-  durationPresetScroll: {
-    gap: 6,
-  },
-  durationPresetPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-    backgroundColor: 'rgba(26, 26, 38, 0.85)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  durationPresetPillSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  durationPresetText: {
-    color: '#D4D4E0',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  durationPresetTextSelected: {
-    color: '#151518',
     fontWeight: '900',
   },
 
   // Conflict Banner
   conflictBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.25)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
     borderRadius: 14,
-    padding: spacing.sm + 2,
+    padding: spacing.md,
     marginTop: spacing.md,
   },
   conflictHeader: {
@@ -993,7 +856,7 @@ const styles = StyleSheet.create({
   },
   conflictTitle: {
     color: '#F87171',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
   },
   shiftButton: {
@@ -1001,13 +864,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primary,
-    borderRadius: 8,
-    paddingVertical: 7,
-    paddingHorizontal: 10,
+    borderRadius: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    marginTop: 6,
   },
   shiftButtonText: {
-    color: '#151518',
-    fontSize: 11,
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '800',
   },
 });
