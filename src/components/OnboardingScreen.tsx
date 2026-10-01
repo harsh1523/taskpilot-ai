@@ -14,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { Ionicons } from '@expo/vector-icons';
 import { IsometricCubeIllustration } from './IsometricCubeIllustration';
-import { colors, spacing, radius, fontSizes, fontWeights, commonStyles } from '../theme';
+import { colors, spacing, radius, fontSizes, fontWeights, commonStyles, useTheme } from '../theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,6 +23,7 @@ interface OnboardingScreenProps {
 }
 
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onStart }) => {
+  const { theme } = useTheme();
   const floatAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -50,12 +51,11 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onStart }) =
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Top ambient aurora glow matching Milkinside Gen UI */}
+      {/* Top ambient aurora glow matching dynamic theme */}
       <LinearGradient
         colors={[
-          'rgba(139, 92, 246, 0.38)',
-          'rgba(56, 189, 248, 0.18)',
-          'rgba(236, 72, 153, 0.08)',
+          theme.primaryGlow,
+          theme.accentGlow,
           'transparent',
         ]}
         start={{ x: 0.5, y: 0 }}
@@ -93,13 +93,13 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onStart }) =
           {/* Pagination dots indicator: · | · */}
           <View style={styles.paginationRow}>
             <View style={styles.dot} />
-            <View style={styles.activeBar} />
+            <View style={[styles.activeBar, { backgroundColor: theme.primary }]} />
             <View style={styles.dot} />
           </View>
 
           {/* Action CTA Button */}
           <TouchableOpacity
-            style={styles.startButton}
+            style={[styles.startButton, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
             onPress={onStart}
             activeOpacity={0.85}
           >

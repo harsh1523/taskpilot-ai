@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Task } from '../types/task';
-import { colors, spacing, radius, fontSizes, fontWeights, commonStyles } from '../theme';
+import { colors, spacing, radius, fontSizes, fontWeights, commonStyles, useTheme } from '../theme';
 import { playSpinnerTickSound, playMacTrashSound } from '../services/soundEffects';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -26,8 +26,9 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   onToggleComplete,
   onDelete,
 }) => {
+  const { theme } = useTheme();
   const priorityInfo = colors.priorities[task.priority] || colors.priorities.medium;
-  const categoryColor = colors.categories[task.category] || colors.primary;
+  const categoryColor = colors.categories[task.category] || theme.primary;
   const checkScale = useRef(new Animated.Value(1)).current;
 
   // Swipe animation values
@@ -151,7 +152,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             <Animated.View
               style={[
                 styles.checkbox,
-                task.isCompleted && styles.checkboxChecked,
+                task.isCompleted && [
+                  styles.checkboxChecked,
+                  {
+                    backgroundColor: theme.primary,
+                    borderColor: theme.primary,
+                    shadowColor: theme.primary,
+                  },
+                ],
                 { transform: [{ scale: checkScale }] },
               ]}
             >
@@ -216,7 +224,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               {/* Voice badge */}
               {task.createdVia === 'voice' && (
                 <View style={styles.voiceBadge}>
-                  <Ionicons name="sparkles" size={10} color={colors.primaryLight} />
+                  <Ionicons name="sparkles" size={10} color={theme.primaryLight} />
                   <Text style={styles.voiceText}>AI Voice</Text>
                 </View>
               )}

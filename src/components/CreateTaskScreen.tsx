@@ -16,7 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
+import { colors, useTheme } from '../theme';
 import { Priority, Task } from '../types/task';
 import { playSpinnerTickSound, speakWithTechna } from '../services/soundEffects';
 import { parseVoiceToTaskForm } from '../services/voiceParser';
@@ -74,6 +74,7 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
   existingTasks = [],
   onShiftTask,
 }) => {
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
   // Form State
@@ -355,7 +356,7 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
 
       {/* Top Ambient Aurora Glow */}
       <LinearGradient
-        colors={colors.gradients.ambient}
+        colors={theme.gradients.ambient}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 0.45 }}
         style={styles.ambientGlow}
@@ -379,24 +380,27 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
 
           {/* Techna Voice Mode Toggle Pill in Center */}
           <TouchableOpacity
-            style={[styles.technaPillBtn, isListening && styles.technaPillBtnActive]}
+            style={[
+              styles.technaPillBtn,
+              isListening && [styles.technaPillBtnActive, { borderColor: theme.primary, backgroundColor: theme.primaryMuted }],
+            ]}
             onPress={toggleVoiceListening}
             activeOpacity={0.8}
           >
-            <View style={[styles.technaDot, isListening && styles.technaDotActive]} />
+            <View style={[styles.technaDot, isListening && [styles.technaDotActive, { backgroundColor: theme.primary }]]} />
             <Ionicons
               name={isListening ? 'mic' : 'mic-outline'}
               size={15}
-              color={isListening ? colors.primaryLight : '#A0A0B0'}
+              color={isListening ? theme.primaryLight : '#A0A0B0'}
             />
-            <Text style={[styles.technaPillText, isListening && styles.technaPillTextActive]}>
+            <Text style={[styles.technaPillText, isListening && [styles.technaPillTextActive, { color: theme.primaryLight }]]}>
               {isListening ? 'Listening...' : 'Voice Auto-Fill'}
             </Text>
           </TouchableOpacity>
 
           {/* Top Save Task Button */}
           <TouchableOpacity
-            style={styles.navSaveBtn}
+            style={[styles.navSaveBtn, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
             onPress={handleSave}
             activeOpacity={0.8}
             accessibilityLabel="Save task"

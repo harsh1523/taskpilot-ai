@@ -7,7 +7,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, padding, radius, fontSizes, fontWeights, commonStyles } from '../theme';
+import { colors, spacing, padding, radius, fontSizes, fontWeights, commonStyles, useTheme } from '../theme';
 import { playSpinnerTickSound } from '../services/soundEffects';
 
 export interface DateItem {
@@ -65,6 +65,7 @@ export const DateCapsulePicker: React.FC<DateCapsulePickerProps> = ({
   onSelectDate,
   onAddDate,
 }) => {
+  const { theme } = useTheme();
   // Use real-time dates if none provided
   const activeDates = dates && dates.length > 0 ? dates : generateRealtimeDates();
 
@@ -100,7 +101,7 @@ export const DateCapsulePicker: React.FC<DateCapsulePickerProps> = ({
                   onPress={() => handlePress(item)}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="add" size={16} color={colors.primaryLight} />
+                  <Ionicons name="add" size={16} color={theme.primaryLight} />
                   <Text style={styles.dashedDayText}>{item.day}</Text>
                   <Text style={styles.dashedMonthText}>{item.month}</Text>
                 </TouchableOpacity>
@@ -113,15 +114,17 @@ export const DateCapsulePicker: React.FC<DateCapsulePickerProps> = ({
               {/* Concentric aura glow for selected date capsule */}
               {isSelected && (
                 <>
-                  <View style={styles.pillAuraOuter} pointerEvents="none" />
-                  <View style={styles.pillAuraMid} pointerEvents="none" />
-                  <View style={styles.pillAuraInner} pointerEvents="none" />
+                  <View style={[styles.pillAuraOuter, { backgroundColor: theme.primaryMuted }]} pointerEvents="none" />
+                  <View style={[styles.pillAuraMid, { backgroundColor: theme.primaryMuted }]} pointerEvents="none" />
+                  <View style={[styles.pillAuraInner, { backgroundColor: theme.primaryGlow }]} pointerEvents="none" />
                 </>
               )}
               <TouchableOpacity
                 style={[
                   styles.capsule,
-                  isSelected ? styles.capsuleSelected : styles.capsuleNormal,
+                  isSelected
+                    ? [styles.capsuleSelected, { backgroundColor: theme.primary, shadowColor: theme.primary }]
+                    : styles.capsuleNormal,
                 ]}
                 onPress={() => handlePress(item)}
                 activeOpacity={0.75}

@@ -1,5 +1,165 @@
+export type ThemeName = 'orange' | 'red' | 'blue' | 'yellow' | 'green' | 'pink' | 'purple';
+
+export interface ThemeConfig {
+  id: ThemeName;
+  name: string;
+  primary: string;
+  primaryDark: string;
+  primaryLight: string;
+  primaryGlow: string;
+  primaryMuted: string;
+  backgroundGlow: string;
+  cardBorderGlow: string;
+  accent: string;
+  accentGlow: string;
+  cyan: string;
+  gradients: {
+    ambient: readonly [string, string, string];
+    activePill: readonly [string, string];
+  };
+}
+
+export const THEME_KEYS: ThemeName[] = [
+  'orange',
+  'red',
+  'blue',
+  'yellow',
+  'green',
+  'pink',
+  'purple',
+];
+
+export const THEMES: Record<ThemeName, ThemeConfig> = {
+  orange: {
+    id: 'orange',
+    name: 'Solar Orange',
+    primary: '#F97316',
+    primaryDark: '#EA580C',
+    primaryLight: '#FB923C',
+    primaryGlow: 'rgba(249, 115, 22, 0.38)',
+    primaryMuted: 'rgba(249, 115, 22, 0.16)',
+    backgroundGlow: '#220E04',
+    cardBorderGlow: 'rgba(249, 115, 22, 0.38)',
+    accent: '#FBBF24',
+    accentGlow: 'rgba(251, 191, 36, 0.28)',
+    cyan: '#FDBA74',
+    gradients: {
+      ambient: ['rgba(249, 115, 22, 0.28)', 'rgba(251, 191, 36, 0.10)', 'transparent'] as const,
+      activePill: ['#F97316', '#EA580C'] as const,
+    },
+  },
+  red: {
+    id: 'red',
+    name: 'Scarlet Crimson',
+    primary: '#EF4444',
+    primaryDark: '#DC2626',
+    primaryLight: '#F87171',
+    primaryGlow: 'rgba(239, 68, 68, 0.38)',
+    primaryMuted: 'rgba(239, 68, 68, 0.16)',
+    backgroundGlow: '#220808',
+    cardBorderGlow: 'rgba(239, 68, 68, 0.38)',
+    accent: '#FB7185',
+    accentGlow: 'rgba(251, 113, 133, 0.28)',
+    cyan: '#FDA4AF',
+    gradients: {
+      ambient: ['rgba(239, 68, 68, 0.28)', 'rgba(244, 63, 94, 0.10)', 'transparent'] as const,
+      activePill: ['#EF4444', '#DC2626'] as const,
+    },
+  },
+  blue: {
+    id: 'blue',
+    name: 'Cyber Sapphire',
+    primary: '#0EA5E9',
+    primaryDark: '#0284C7',
+    primaryLight: '#38BDF8',
+    primaryGlow: 'rgba(14, 165, 233, 0.38)',
+    primaryMuted: 'rgba(14, 165, 233, 0.16)',
+    backgroundGlow: '#041628',
+    cardBorderGlow: 'rgba(14, 165, 233, 0.38)',
+    accent: '#6366F1',
+    accentGlow: 'rgba(99, 102, 241, 0.28)',
+    cyan: '#38BDF8',
+    gradients: {
+      ambient: ['rgba(14, 165, 233, 0.28)', 'rgba(99, 102, 241, 0.10)', 'transparent'] as const,
+      activePill: ['#0EA5E9', '#0284C7'] as const,
+    },
+  },
+  yellow: {
+    id: 'yellow',
+    name: 'Neon Cyber Gold',
+    primary: '#EAB308',
+    primaryDark: '#CA8A04',
+    primaryLight: '#FDE047',
+    primaryGlow: 'rgba(234, 179, 8, 0.38)',
+    primaryMuted: 'rgba(234, 179, 8, 0.16)',
+    backgroundGlow: '#221903',
+    cardBorderGlow: 'rgba(234, 179, 8, 0.38)',
+    accent: '#F97316',
+    accentGlow: 'rgba(249, 115, 22, 0.28)',
+    cyan: '#FEF08A',
+    gradients: {
+      ambient: ['rgba(234, 179, 8, 0.28)', 'rgba(249, 115, 22, 0.10)', 'transparent'] as const,
+      activePill: ['#EAB308', '#CA8A04'] as const,
+    },
+  },
+  green: {
+    id: 'green',
+    name: 'Emerald Aurora',
+    primary: '#10B981',
+    primaryDark: '#059669',
+    primaryLight: '#34D399',
+    primaryGlow: 'rgba(16, 185, 129, 0.38)',
+    primaryMuted: 'rgba(16, 185, 129, 0.16)',
+    backgroundGlow: '#042217',
+    cardBorderGlow: 'rgba(16, 185, 129, 0.38)',
+    accent: '#06B6D4',
+    accentGlow: 'rgba(6, 182, 212, 0.28)',
+    cyan: '#6EE7B7',
+    gradients: {
+      ambient: ['rgba(16, 185, 129, 0.28)', 'rgba(6, 182, 212, 0.10)', 'transparent'] as const,
+      activePill: ['#10B981', '#059669'] as const,
+    },
+  },
+  pink: {
+    id: 'pink',
+    name: 'Electric Fuchsia',
+    primary: '#EC4899',
+    primaryDark: '#DB2777',
+    primaryLight: '#F472B6',
+    primaryGlow: 'rgba(236, 72, 153, 0.38)',
+    primaryMuted: 'rgba(236, 72, 153, 0.16)',
+    backgroundGlow: '#24081C',
+    cardBorderGlow: 'rgba(236, 72, 153, 0.38)',
+    accent: '#A855F7',
+    accentGlow: 'rgba(168, 85, 247, 0.28)',
+    cyan: '#F472B6',
+    gradients: {
+      ambient: ['rgba(236, 72, 153, 0.28)', 'rgba(168, 85, 247, 0.10)', 'transparent'] as const,
+      activePill: ['#EC4899', '#DB2777'] as const,
+    },
+  },
+  purple: {
+    id: 'purple',
+    name: 'Electric Violet',
+    primary: '#8B5CF6',
+    primaryDark: '#7C3AED',
+    primaryLight: '#A78BFA',
+    primaryGlow: 'rgba(139, 92, 246, 0.32)',
+    primaryMuted: 'rgba(139, 92, 246, 0.14)',
+    backgroundGlow: '#120D1D',
+    cardBorderGlow: 'rgba(139, 92, 246, 0.35)',
+    accent: '#EC4899',
+    accentGlow: 'rgba(236, 72, 153, 0.28)',
+    cyan: '#38BDF8',
+    gradients: {
+      ambient: ['rgba(139, 92, 246, 0.18)', 'rgba(56, 189, 248, 0.07)', 'transparent'] as const,
+      activePill: ['#8B5CF6', '#7C3AED'] as const,
+    },
+  },
+};
+
 export const colors = {
-  // Milkinside Gen UI - Deep space velvety obsidian
+  // Deep space obsidian base
   background: '#07070A',
   backgroundGlow: '#120D1D',
   surface: '#0F0F16',
@@ -7,14 +167,14 @@ export const colors = {
   surfaceBorder: 'rgba(255, 255, 255, 0.08)',
   surfaceBorderLight: 'rgba(255, 255, 255, 0.14)',
 
-  // Signature Gen UI Accents (Electric Violet & Aurora)
+  // Dynamic Theme Accents (default: purple)
   primary: '#8B5CF6',
   primaryDark: '#7C3AED',
   primaryLight: '#A78BFA',
   primaryGlow: 'rgba(139, 92, 246, 0.32)',
   primaryMuted: 'rgba(139, 92, 246, 0.14)',
 
-  // Aurora Highlights
+  // Highlights
   cyan: '#38BDF8',
   cyanGlow: 'rgba(56, 189, 248, 0.28)',
   rose: '#EC4899',
@@ -59,13 +219,13 @@ export const colors = {
 
   // Gradients
   gradients: {
-    ambient: ['rgba(139, 92, 246, 0.18)', 'rgba(56, 189, 248, 0.07)', 'transparent'] as const,
+    ambient: ['rgba(139, 92, 246, 0.18)', 'rgba(56, 189, 248, 0.07)', 'transparent'] as readonly [string, string, string],
     ambientWarm: ['rgba(251, 146, 60, 0.14)', 'rgba(236, 72, 153, 0.08)', 'transparent'] as const,
     gen: ['#8B5CF6', '#EC4899', '#FB923C'] as const,
     techna: ['#8B5CF6', '#EC4899', '#FB923C'] as const,
     technaOrb: ['#38BDF8', '#818CF8', '#C084FC', '#F472B6', '#FB923C'] as const,
     aurora: ['#38BDF8', '#818CF8', '#C084FC'] as const,
-    activePill: ['#8B5CF6', '#7C3AED'] as const,
+    activePill: ['#8B5CF6', '#7C3AED'] as readonly [string, string],
   },
 
   priorities: {
@@ -101,4 +261,29 @@ export const colors = {
   },
 };
 
+/**
+ * Updates the global mutable colors object to match a selected theme.
+ */
+export function setGlobalTheme(themeName: ThemeName) {
+  const conf = THEMES[themeName];
+  if (!conf) return;
 
+  colors.primary = conf.primary;
+  colors.primaryDark = conf.primaryDark;
+  colors.primaryLight = conf.primaryLight;
+  colors.primaryGlow = conf.primaryGlow;
+  colors.primaryMuted = conf.primaryMuted;
+  colors.backgroundGlow = conf.backgroundGlow;
+  colors.cardBorderGlow = conf.cardBorderGlow;
+  colors.accent = conf.accent;
+  colors.accentGlow = conf.accentGlow;
+  colors.voiceActive = conf.primary;
+  colors.voiceActiveGlow = conf.primaryGlow;
+  colors.cyan = conf.cyan;
+  colors.gradients.ambient = conf.gradients.ambient;
+  colors.gradients.activePill = conf.gradients.activePill;
+}
+
+// Initial random seed on module load so initial StyleSheets also get a vibrant theme
+const initialRandomTheme = THEME_KEYS[Math.floor(Math.random() * THEME_KEYS.length)];
+setGlobalTheme(initialRandomTheme);

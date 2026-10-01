@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Category, Priority, Task } from '../types/task';
-import { colors } from '../theme/colors';
+import { colors, useTheme } from '../theme';
 import { playSpinnerTickSound, speakWithTechna } from '../services/soundEffects';
 import { extractSpokenDueDate, parseVoiceToTaskForm, parseSpokenPriority } from '../services/voiceParser';
 import { TechnaDisplayBorderGlow } from './TechnaDisplayBorderGlow';
@@ -46,6 +46,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
   existingTasks = [],
   onShiftTask,
 }) => {
+  const { theme } = useTheme();
   const [currentStep, setCurrentStep] = useState<TechnaStep>('task');
   const [isListening, setIsListening] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState('');
@@ -367,7 +368,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
           {/* 1. Minimalist Apple Siri Header Bar */}
           <View style={styles.headerRow}>
             <View style={styles.siriHeaderGroup}>
-              <View style={[styles.siriLiveDot, isListening && styles.siriLiveDotActive]} />
+              <View style={[styles.siriLiveDot, isListening && [styles.siriLiveDotActive, { backgroundColor: theme.primary }]]} />
               <Text style={styles.siriTitleText}>Techna</Text>
               <Text style={styles.siriSubtitleText}>{isListening ? 'Listening' : 'Ready'}</Text>
             </View>
@@ -375,7 +376,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
             <View style={styles.headerRightGroup}>
               {taskTitle.trim().length > 0 && currentStep !== 'done' && (
                 <TouchableOpacity
-                  style={styles.topSavePill}
+                  style={[styles.topSavePill, { backgroundColor: theme.primary }]}
                   onPress={() => {
                     playSpinnerTickSound(1100);
                     finalizeAndSave(selectedPriority, taskTitle, selectedDate, selectedTimeRange);
@@ -432,7 +433,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
                 </View>
               </View>
             ) : liveTranscript ? (
-              <Text style={styles.liveTranscriptText} numberOfLines={3}>
+              <Text style={[styles.liveTranscriptText, { color: theme.primaryLight }]} numberOfLines={3}>
                 &ldquo;{liveTranscript}&rdquo;
               </Text>
             ) : (

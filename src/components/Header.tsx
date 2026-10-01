@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, padding, radius, fontSizes, fontWeights, commonStyles } from '../theme';
+import { colors, spacing, padding, radius, fontSizes, fontWeights, commonStyles, useTheme } from '../theme';
 import { playSpinnerTickSound } from '../services/soundEffects';
 import { formatDateLabel } from '../utils/scheduleUtils';
 
@@ -20,6 +20,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeFilter = 'all',
   onSelectFilter,
 }) => {
+  const { theme, cycleTheme } = useTheme();
   // Real-time clock and calendar that ticks every second
   const [currentDateTime, setCurrentDateTime] = useState<Date>(() => new Date());
 
@@ -48,20 +49,25 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  const activeTabStyle = {
+    backgroundColor: theme.primary,
+    shadowColor: theme.primary,
+  };
+
   return (
     <View style={styles.container}>
       {/* Real-time Status Bar (Date and Live Ticking Time with Gen UI frosted capsules) */}
       <View style={styles.realtimeBar}>
         {/* Date Month Year Pill */}
         <View style={styles.datePill}>
-          <Ionicons name="calendar-outline" size={13} color={colors.primaryLight} style={styles.pillIcon} />
+          <Ionicons name="calendar-outline" size={13} color={theme.primaryLight} style={styles.pillIcon} />
           <Text style={styles.dateText}>{formattedDate}</Text>
         </View>
 
         {/* Real-Time Clock Pill with live pulsing neon emerald dot */}
         <View style={styles.timePill}>
           <View style={styles.liveClockDot} />
-          <Ionicons name="time-outline" size={13} color={colors.cyan} style={styles.pillIcon} />
+          <Ionicons name="time-outline" size={13} color={theme.cyan || colors.cyan} style={styles.pillIcon} />
           <Text style={styles.timeText}>{formattedTime}</Text>
         </View>
       </View>
@@ -72,17 +78,25 @@ export const Header: React.FC<HeaderProps> = ({
           <Text style={styles.title}>
             Smart <Text style={styles.boldTitle}>Tasks</Text>
           </Text>
-          <View style={styles.genUiBadge}>
-            <Ionicons name="sparkles" size={10} color={colors.primaryLight} style={{ marginRight: 3 }} />
-            <Text style={styles.genUiBadgeText}>GEN UI</Text>
-          </View>
+          <TouchableOpacity
+            style={[styles.genUiBadge, { borderColor: `${theme.primary}50`, backgroundColor: theme.primaryMuted }]}
+            onPress={() => {
+              playSpinnerTickSound(1050);
+              cycleTheme();
+            }}
+            activeOpacity={0.75}
+            accessibilityLabel={`Theme: ${theme.name}. Tap to change theme.`}
+          >
+            <Ionicons name="sparkles" size={10} color={theme.primaryLight} style={{ marginRight: 4 }} />
+            <Text style={[styles.genUiBadgeText, { color: theme.primaryLight }]}>{theme.name.toUpperCase()}</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
       {/* Frosted Glass Segmented Filter Bar */}
       <View style={styles.segmentBar}>
         <TouchableOpacity
-          style={[styles.segmentTab, activeFilter === 'all' && styles.segmentTabActive]}
+          style={[styles.segmentTab, activeFilter === 'all' && [styles.segmentTabActive, activeTabStyle]]}
           onPress={() => handleFilterPress('all')}
           activeOpacity={0.75}
         >
@@ -97,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.segmentTab, activeFilter === 'pending' && styles.segmentTabActive]}
+          style={[styles.segmentTab, activeFilter === 'pending' && [styles.segmentTabActive, activeTabStyle]]}
           onPress={() => handleFilterPress('pending')}
           activeOpacity={0.75}
         >
@@ -112,7 +126,7 @@ export const Header: React.FC<HeaderProps> = ({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.segmentTab, activeFilter === 'completed' && styles.segmentTabActive]}
+          style={[styles.segmentTab, activeFilter === 'completed' && [styles.segmentTabActive, activeTabStyle]]}
           onPress={() => handleFilterPress('completed')}
           activeOpacity={0.75}
         >

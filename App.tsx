@@ -17,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Task, TaskFilter } from './src/types/task';
 import { taskStorage } from './src/services/taskStorage';
-import { colors, spacing, padding, radius, fontSizes, fontWeights, commonStyles } from './src/theme';
+import { colors, spacing, padding, radius, fontSizes, fontWeights, commonStyles, ThemeProvider, useTheme } from './src/theme';
 import { playSpinnerTickSound, playMacTrashSound } from './src/services/soundEffects';
 import { Header } from './src/components/Header';
 import { TaskItem } from './src/components/TaskItem';
@@ -34,7 +34,8 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const ONBOARDING_KEY = '@ai_task_manager_has_seen_onboarding_v1';
 
-export default function App() {
+function MainApp() {
+  const { theme } = useTheme();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSplashVisible, setIsSplashVisible] = useState(true);
@@ -184,120 +185,119 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" backgroundColor="#07070A" />
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor="#07070A" />
 
-        {/* Ambient Aurora Glow (Milkinside signature) */}
-        <LinearGradient
-          colors={colors.gradients.ambient}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 0.4 }}
-          style={styles.ambientGlow}
-          pointerEvents="none"
+      {/* Dynamic Ambient Aurora Glow matching active color theme */}
+      <LinearGradient
+        colors={theme.gradients.ambient}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 0.4 }}
+        style={styles.ambientGlow}
+        pointerEvents="none"
+      />
+
+      {/* App Header with Interactive Filters */}
+      <Header
+        totalCount={counts.all || 0}
+        pendingCount={counts.pending || 0}
+        completedCount={counts.completed || 0}
+        activeFilter={selectedFilter as any}
+        onSelectFilter={(f) => setSelectedFilter(f)}
+      />
+
+      {/* Date Capsule Strip */}
+      <DateCapsulePicker
+        selectedId={selectedDateId}
+        onSelectDate={(item: DateItem) => setSelectedDateId(item.day)}
+        onAddDate={() => {
+          playSpinnerTickSound(900);
+          setCreateModalVisible(true);
+        }}
+      />
+
+      {/* Frosted Glass Search Bar */}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={17} color={theme.cyan || theme.primaryLight} style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search tasks..."
+          placeholderTextColor="#6E6E82"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
         />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Ionicons name="close-circle" size={18} color="#8A8A9E" />
+          </TouchableOpacity>
+        )}
+      </View>
 
-        {/* App Header with Interactive Filters */}
-        <Header
-          totalCount={counts.all || 0}
-          pendingCount={counts.pending || 0}
-          completedCount={counts.completed || 0}
-          activeFilter={selectedFilter as any}
-          onSelectFilter={(f) => setSelectedFilter(f)}
+      {/* Task List */}
+      {loading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={styles.loadingText}>Loading tasks...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredTasks}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TaskItem
+              task={item}
+              onToggleComplete={handleToggleComplete}
+              onDelete={handleDeleteTask}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          scrollEventThrottle={16}
+          decelerationRate="normal"
+          bounces={true}
+          overScrollMode="always"
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <View style={[styles.emptyIconCircle, { backgroundColor: theme.primaryMuted, borderColor: theme.primaryGlow }]}>
+                <Ionicons name="sparkles" size={32} color={theme.primaryLight} />
+              </View>
+              <Text style={styles.emptyTitle}>No tasks found</Text>
+              <Text style={styles.emptySubtitle}>
+                {searchQuery
+                  ? 'Try searching with different keywords'
+                  : 'Tap "+ Create Task" below to add a task'}
+              </Text>
+            </View>
+          }
         />
+      )}
 
-        {/* Date Capsule Strip */}
-        <DateCapsulePicker
-          selectedId={selectedDateId}
-          onSelectDate={(item: DateItem) => setSelectedDateId(item.day)}
-          onAddDate={() => {
+      {/* Bottom Action Dock with Glowing Create Task & Techna Voice Button */}
+      <View style={styles.bottomDock}>
+        <TouchableOpacity
+          style={[styles.createTaskBtn, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
+          onPress={() => {
             playSpinnerTickSound(900);
             setCreateModalVisible(true);
           }}
+          activeOpacity={0.88}
+        >
+          <Ionicons name="add" size={22} color="#FFFFFF" />
+          <Text style={styles.createTaskBtnText}>Create Task</Text>
+        </TouchableOpacity>
+
+        {/* Techna Voice Assistant Robot Face with Blinking Eyes */}
+        <TechnaOrb
+          variant="face"
+          size={54}
+          isListening={false}
+          onPress={() => {
+            playSpinnerTickSound(980);
+            setVoiceModalVisible(true);
+          }}
         />
-
-        {/* Frosted Glass Search Bar */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={17} color={colors.cyan} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search tasks..."
-            placeholderTextColor="#6E6E82"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color="#8A8A9E" />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Task List */}
-        {loading ? (
-          <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading tasks...</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={filteredTasks}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TaskItem
-                task={item}
-                onToggleComplete={handleToggleComplete}
-                onDelete={handleDeleteTask}
-              />
-            )}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            scrollEventThrottle={16}
-            decelerationRate="normal"
-            bounces={true}
-            overScrollMode="always"
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <View style={styles.emptyIconCircle}>
-                  <Ionicons name="sparkles" size={32} color={colors.primaryLight} />
-                </View>
-                <Text style={styles.emptyTitle}>No tasks found</Text>
-                <Text style={styles.emptySubtitle}>
-                  {searchQuery
-                    ? 'Try searching with different keywords'
-                    : 'Tap "+ Create Task" below to add a task'}
-                </Text>
-              </View>
-            }
-          />
-        )}
-
-        {/* Bottom Action Dock with Glowing Create Task & Techna Voice Button */}
-        <View style={styles.bottomDock}>
-          <TouchableOpacity
-            style={styles.createTaskBtn}
-            onPress={() => {
-              playSpinnerTickSound(900);
-              setCreateModalVisible(true);
-            }}
-            activeOpacity={0.88}
-          >
-            <Ionicons name="add" size={22} color="#FFFFFF" />
-            <Text style={styles.createTaskBtnText}>Create Task</Text>
-          </TouchableOpacity>
-
-          {/* Techna Voice Assistant Robot Face with Blinking Eyes */}
-          <TechnaOrb
-            variant="face"
-            size={54}
-            isListening={false}
-            onPress={() => {
-              playSpinnerTickSound(980);
-              setVoiceModalVisible(true);
-            }}
-          />
-        </View>
+      </View>
 
       {/* Create Task Modal with Manual & Voice Entry in One */}
       <CreateTaskModal
@@ -317,7 +317,16 @@ export default function App() {
         onShiftTask={handleShiftTask}
       />
     </SafeAreaView>
-  </SafeAreaProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <MainApp />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 

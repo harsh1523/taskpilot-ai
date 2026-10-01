@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IsometricCubeIllustration } from './IsometricCubeIllustration';
-import { colors, spacing, radius, fontSizes, fontWeights, commonStyles } from '../theme';
+import { colors, spacing, radius, fontSizes, fontWeights, commonStyles, useTheme } from '../theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -18,6 +18,7 @@ interface SplashScreenViewProps {
 }
 
 export const SplashScreenView: React.FC<SplashScreenViewProps> = ({ onFinish }) => {
+  const { theme } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.88)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -65,12 +66,11 @@ export const SplashScreenView: React.FC<SplashScreenViewProps> = ({ onFinish }) 
     <Animated.View style={[styles.container, { opacity: exitAnim }]}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Top ambient aurora glow matching Milkinside Gen UI */}
+      {/* Top ambient aurora glow matching dynamic theme */}
       <LinearGradient
         colors={[
-          'rgba(139, 92, 246, 0.45)',
-          'rgba(56, 189, 248, 0.22)',
-          'rgba(236, 72, 153, 0.12)',
+          theme.primaryGlow,
+          theme.accentGlow,
           'transparent',
         ]}
         start={{ x: 0.5, y: 0 }}
@@ -97,14 +97,14 @@ export const SplashScreenView: React.FC<SplashScreenViewProps> = ({ onFinish }) 
         {/* Brand Title */}
         <View style={styles.textContainer}>
           <Text style={styles.brandTitle}>
-            TASKPILOT <Text style={styles.brandAccent}>AI</Text>
+            TASKPILOT <Text style={[styles.brandAccent, { color: theme.primaryLight }]}>AI</Text>
           </Text>
           <Text style={styles.tagline}>Intelligent Task & Voice Assistant</Text>
         </View>
 
         {/* Sleek Minimal Progress Line */}
         <View style={styles.progressTrack}>
-          <Animated.View style={[styles.progressBar, { width: progressWidth }]} />
+          <Animated.View style={[styles.progressBar, { width: progressWidth, backgroundColor: theme.primary }]} />
         </View>
       </Animated.View>
 
