@@ -27,6 +27,7 @@ import { VoiceTaskModal } from './src/components/VoiceTaskModal';
 import { OnboardingScreen } from './src/components/OnboardingScreen';
 import { DateCapsulePicker, DateItem } from './src/components/DateCapsulePicker';
 import { SplashScreenView } from './src/components/SplashScreenView';
+import { TechnaOrb } from './src/components/common/TechnaOrb';
 
 // Prevent native splash screen from auto hiding before app initializes
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -286,25 +287,15 @@ export default function App() {
             <Text style={styles.createTaskBtnText}>Create Task</Text>
           </TouchableOpacity>
 
-          {/* Small Techna Voice Assistant Button */}
-          <TouchableOpacity
-            style={styles.technaVoiceFab}
+          {/* Techna Voice Assistant Siri Orb Button */}
+          <TechnaOrb
+            size={54}
+            isListening={false}
             onPress={() => {
               playSpinnerTickSound(980);
               setVoiceModalVisible(true);
             }}
-            activeOpacity={0.82}
-            accessibilityLabel="Speak to add task with Techna"
-          >
-            <LinearGradient
-              colors={colors.gradients.techna}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.technaVoiceGradient}
-            >
-              <Ionicons name="mic" size={24} color="#FFFFFF" />
-            </LinearGradient>
-          </TouchableOpacity>
+          />
         </View>
 
       {/* Create Task Modal with Manual & Voice Entry in One */}

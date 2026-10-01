@@ -1,6 +1,15 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, Animated, Platform } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import Svg, {
+  Defs,
+  RadialGradient,
+  LinearGradient as SvgLinear,
+  Stop,
+  Circle,
+  Path,
+  G,
+  Rect,
+} from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { playSpinnerTickSound } from '../../services/soundEffects';
 
@@ -13,87 +22,136 @@ interface TechnaOrbProps {
 export const TechnaOrb: React.FC<TechnaOrbProps> = ({
   isListening,
   onPress,
-  size = 96,
+  size = 110,
 }) => {
+  // Animation Values
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const glowAnim = useRef(new Animated.Value(0.3)).current;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-  const innerScaleAnim = useRef(new Animated.Value(1)).current;
-
-  // Soundwave heights
-  const wave1 = useRef(new Animated.Value(8)).current;
-  const wave2 = useRef(new Animated.Value(14)).current;
-  const wave3 = useRef(new Animated.Value(20)).current;
-  const wave4 = useRef(new Animated.Value(14)).current;
-  const wave5 = useRef(new Animated.Value(8)).current;
+  const glowAnim = useRef(new Animated.Value(0.4)).current;
+  const swayLeft = useRef(new Animated.Value(0)).current;
+  const swayRight = useRef(new Animated.Value(0)).current;
+  const swayCenter = useRef(new Animated.Value(0)).current;
+  const corePulse = useRef(new Animated.Value(1)).current;
+  const sphereRotate = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Smooth continuous rotating Siri aura
-    const rotationLoop = Animated.loop(
-      Animated.timing(rotateAnim, {
+    // 1. Subtle Sphere Aura Rotation
+    const rotateLoop = Animated.loop(
+      Animated.timing(sphereRotate, {
         toValue: 1,
-        duration: isListening ? 4500 : 9000,
+        duration: isListening ? 6000 : 14000,
         useNativeDriver: true,
       })
     );
-    rotationLoop.start();
+    rotateLoop.start();
 
-    return () => rotationLoop.stop();
-  }, [isListening]);
+    // 2. Continuous Organic Wave Sway (Left Cyan Petal)
+    const leftLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(swayLeft, {
+          toValue: 1,
+          duration: isListening ? 650 : 1600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(swayLeft, {
+          toValue: -1,
+          duration: isListening ? 650 : 1600,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    leftLoop.start();
 
-  useEffect(() => {
-    let animLoop: Animated.CompositeAnimation | null = null;
-    if (isListening) {
-      animLoop = Animated.loop(
-        Animated.parallel([
-          Animated.sequence([
-            Animated.timing(pulseAnim, { toValue: 1.16, duration: 750, useNativeDriver: true }),
-            Animated.timing(pulseAnim, { toValue: 0.98, duration: 750, useNativeDriver: true }),
-          ]),
-          Animated.sequence([
-            Animated.timing(innerScaleAnim, { toValue: 1.05, duration: 600, useNativeDriver: true }),
-            Animated.timing(innerScaleAnim, { toValue: 0.97, duration: 600, useNativeDriver: true }),
-          ]),
-          Animated.sequence([
-            Animated.timing(glowAnim, { toValue: 0.9, duration: 750, useNativeDriver: true }),
-            Animated.timing(glowAnim, { toValue: 0.35, duration: 750, useNativeDriver: true }),
-          ]),
-          Animated.sequence([
-            Animated.timing(wave1, { toValue: 26, duration: 200, useNativeDriver: false }),
-            Animated.timing(wave1, { toValue: 8, duration: 200, useNativeDriver: false }),
-          ]),
-          Animated.sequence([
-            Animated.timing(wave2, { toValue: 38, duration: 240, useNativeDriver: false }),
-            Animated.timing(wave2, { toValue: 12, duration: 240, useNativeDriver: false }),
-          ]),
-          Animated.sequence([
-            Animated.timing(wave3, { toValue: 46, duration: 210, useNativeDriver: false }),
-            Animated.timing(wave3, { toValue: 16, duration: 210, useNativeDriver: false }),
-          ]),
-          Animated.sequence([
-            Animated.timing(wave4, { toValue: 36, duration: 250, useNativeDriver: false }),
-            Animated.timing(wave4, { toValue: 10, duration: 250, useNativeDriver: false }),
-          ]),
-          Animated.sequence([
-            Animated.timing(wave5, { toValue: 24, duration: 220, useNativeDriver: false }),
-            Animated.timing(wave5, { toValue: 8, duration: 220, useNativeDriver: false }),
-          ]),
-        ])
-      );
-      animLoop.start();
-    } else {
-      pulseAnim.setValue(1);
-      innerScaleAnim.setValue(1);
-      glowAnim.setValue(0.25);
-      wave1.setValue(8);
-      wave2.setValue(14);
-      wave3.setValue(18);
-      wave4.setValue(14);
-      wave5.setValue(8);
-    }
+    // 3. Counter-phase Wave Sway (Right Magenta Petal)
+    const rightLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(swayRight, {
+          toValue: -1,
+          duration: isListening ? 750 : 1800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(swayRight, {
+          toValue: 1,
+          duration: isListening ? 750 : 1800,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    rightLoop.start();
+
+    // 4. Center Flame Breathing
+    const centerLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(swayCenter, {
+          toValue: 1,
+          duration: isListening ? 500 : 1200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(swayCenter, {
+          toValue: 0,
+          duration: isListening ? 500 : 1200,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    centerLoop.start();
+
+    // 5. Overall Breathing & Core Radiant Bloom
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: isListening ? 1.08 : 1.03,
+          duration: isListening ? 600 : 1400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: isListening ? 0.96 : 0.98,
+          duration: isListening ? 600 : 1400,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulseLoop.start();
+
+    const glowLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
+          toValue: isListening ? 0.95 : 0.6,
+          duration: isListening ? 600 : 1400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: isListening ? 0.5 : 0.35,
+          duration: isListening ? 600 : 1400,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    glowLoop.start();
+
+    const coreLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(corePulse, {
+          toValue: isListening ? 1.25 : 1.1,
+          duration: isListening ? 450 : 1100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(corePulse, {
+          toValue: isListening ? 0.85 : 0.95,
+          duration: isListening ? 450 : 1100,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    coreLoop.start();
 
     return () => {
-      if (animLoop) animLoop.stop();
+      rotateLoop.stop();
+      leftLoop.stop();
+      rightLoop.stop();
+      centerLoop.stop();
+      pulseLoop.stop();
+      glowLoop.stop();
+      coreLoop.stop();
     };
   }, [isListening]);
 
@@ -105,99 +163,282 @@ export const TechnaOrb: React.FC<TechnaOrbProps> = ({
     onPress();
   };
 
-  const spin = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
+  // Interpolated Transforms
+  const leftRotate = swayLeft.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: ['-12deg', '0deg', '10deg'],
+  });
+  const leftTranslateY = swayLeft.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: [2.5, 0, -2.5],
+  });
+  const leftScaleX = swayLeft.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: [0.92, 1, 1.08],
   });
 
-  const auraSize = size + 44;
-  const haloSize = size + 14;
+  const rightRotate = swayRight.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: ['12deg', '0deg', '-10deg'],
+  });
+  const rightTranslateY = swayRight.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: [-2.5, 0, 2.5],
+  });
+  const rightScaleX = swayRight.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: [1.08, 1, 0.92],
+  });
+
+  const centerScale = swayCenter.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.95, 1.1],
+  });
+  const centerTranslateY = swayCenter.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, -2],
+  });
+
+  const auraSize = size + 40;
 
   return (
     <View style={styles.container}>
-      {/* Layer 1: Ambient Siri Glow Field */}
+      {/* 1. Ambient Apple Siri Drop Glow Field */}
       <Animated.View
         style={[
-          styles.auraRing,
+          styles.ambientGlow,
           {
             width: auraSize,
             height: auraSize,
             borderRadius: auraSize / 2,
             transform: [{ scale: pulseAnim }],
-            opacity: isListening ? glowAnim : 0.35,
+            opacity: glowAnim,
           },
         ]}
       >
-        <LinearGradient
-          colors={['rgba(56, 189, 248, 0.45)', 'rgba(236, 72, 153, 0.35)', 'rgba(139, 92, 246, 0.25)', 'transparent']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
+        <Svg width={auraSize} height={auraSize} viewBox="0 0 140 140">
+          <Defs>
+            <RadialGradient id="siriAtmosphere" cx="50%" cy="45%" r="50%">
+              <Stop offset="0%" stopColor="#FF2A85" stopOpacity="0.45" />
+              <Stop offset="35%" stopColor="#8B5CF6" stopOpacity="0.3" />
+              <Stop offset="70%" stopColor="#00D2FF" stopOpacity="0.2" />
+              <Stop offset="100%" stopColor="transparent" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Circle cx="70" cy="70" r="70" fill="url(#siriAtmosphere)" />
+        </Svg>
       </Animated.View>
 
-      {/* Layer 2: Rotating Siri Multi-Chromatic Halo */}
-      <Animated.View
-        style={[
-          styles.haloRing,
-          {
-            width: haloSize,
-            height: haloSize,
-            borderRadius: haloSize / 2,
-            transform: [{ rotate: spin }],
-            opacity: isListening ? 0.95 : 0.65,
-          },
-        ]}
-      >
-        <LinearGradient
-          colors={['#00D2FF', '#8B5CF6', '#FF2A85', '#38BDF8', '#7928CA', '#00D2FF']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.haloGradient}
-        />
-      </Animated.View>
-
-      {/* Layer 3: Tactile Siri Interactive Glass Core */}
+      {/* 2. Tactile Apple Siri Sphere Button */}
       <TouchableOpacity
         onPress={handlePress}
-        activeOpacity={0.85}
+        activeOpacity={0.88}
         accessibilityLabel={isListening ? 'Stop listening' : 'Start Techna voice assistant'}
+        style={[styles.sphereShadow, { width: size, height: size }]}
       >
         <Animated.View
           style={[
-            styles.orbCoreWrapper,
+            styles.sphereBody,
             {
               width: size,
               height: size,
               borderRadius: size / 2,
-              transform: [{ scale: innerScaleAnim }],
+              transform: [{ scale: pulseAnim }],
             },
           ]}
         >
-          {/* Rich Radial Siri Gradient */}
-          <LinearGradient
-            colors={['#1E1638', '#120F24', '#080811']}
-            start={{ x: 0.2, y: 0.1 }}
-            end={{ x: 0.8, y: 0.9 }}
-            style={styles.orbCoreGradient}
-          >
-            {/* Top Gloss Reflection */}
-            <LinearGradient
-              colors={['rgba(255, 255, 255, 0.35)', 'rgba(255, 255, 255, 0.05)', 'transparent']}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 0.6 }}
-              style={styles.glossHighlight}
-            />
+          {/* Base Sphere SVG: Dark Obsidian base with Ruby-Crimson and Cyan Crescents */}
+          <Svg width={size} height={size} viewBox="0 0 100 100" style={StyleSheet.absoluteFill}>
+            <Defs>
+              {/* Deep base spherical dark gradient */}
+              <RadialGradient id="siriBase" cx="50%" cy="50%" r="50%">
+                <Stop offset="0%" stopColor="#1E0E28" />
+                <Stop offset="65%" stopColor="#12061A" />
+                <Stop offset="100%" stopColor="#06020A" />
+              </RadialGradient>
 
-            {/* Siri Animated Audio Ribbons */}
-            <View style={styles.soundWaveGroup}>
-              <Animated.View style={[styles.soundWaveBar, styles.wavePink, { height: wave1 }]} />
-              <Animated.View style={[styles.soundWaveBar, styles.waveCyan, { height: wave2 }]} />
-              <Animated.View style={[styles.soundWaveBar, styles.waveWhite, { height: wave3 }]} />
-              <Animated.View style={[styles.soundWaveBar, styles.waveCyan, { height: wave4 }]} />
-              <Animated.View style={[styles.soundWaveBar, styles.waveViolet, { height: wave5 }]} />
-            </View>
-          </LinearGradient>
+              {/* Top-Right Glowing Crimson / Ruby Flare */}
+              <RadialGradient id="rubyGlow" cx="78%" cy="22%" r="62%">
+                <Stop offset="0%" stopColor="#FF2D55" stopOpacity="1" />
+                <Stop offset="30%" stopColor="#E11D48" stopOpacity="0.85" />
+                <Stop offset="60%" stopColor="#BE123C" stopOpacity="0.4" />
+                <Stop offset="100%" stopColor="transparent" stopOpacity="0" />
+              </RadialGradient>
+
+              {/* Top-Left Glowing Cyan / Aqua Flare */}
+              <RadialGradient id="cyanGlow" cx="22%" cy="25%" r="58%">
+                <Stop offset="0%" stopColor="#00F2FE" stopOpacity="0.95" />
+                <Stop offset="35%" stopColor="#06B6D4" stopOpacity="0.75" />
+                <Stop offset="65%" stopColor="#0284C7" stopOpacity="0.3" />
+                <Stop offset="100%" stopColor="transparent" stopOpacity="0" />
+              </RadialGradient>
+
+              {/* Bottom Soft Violet Sheen */}
+              <RadialGradient id="bottomPlum" cx="50%" cy="85%" r="45%">
+                <Stop offset="0%" stopColor="#9333EA" stopOpacity="0.45" />
+                <Stop offset="60%" stopColor="#4C1D95" stopOpacity="0.2" />
+                <Stop offset="100%" stopColor="transparent" stopOpacity="0" />
+              </RadialGradient>
+            </Defs>
+
+            {/* Base Dark Velvet Sphere */}
+            <Circle cx="50" cy="50" r="50" fill="url(#siriBase)" />
+
+            {/* Top-Right Ruby Crescent */}
+            <Circle cx="50" cy="50" r="50" fill="url(#rubyGlow)" />
+
+            {/* Top-Left Cyan Crescent */}
+            <Circle cx="50" cy="50" r="50" fill="url(#cyanGlow)" />
+
+            {/* Bottom Plum Depth */}
+            <Circle cx="50" cy="50" r="50" fill="url(#bottomPlum)" />
+          </Svg>
+
+          {/* 3. Luminous Fluid Siri Waves (The iconic Siri ribbon brain) */}
+
+          {/* Ribbon Layer A: Left Cyan Glowing Wave Petal */}
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                transform: [
+                  { rotate: leftRotate },
+                  { translateY: leftTranslateY },
+                  { scaleX: leftScaleX },
+                ],
+              },
+            ]}
+            pointerEvents="none"
+          >
+            <Svg width={size} height={size} viewBox="0 0 100 100">
+              <Defs>
+                <SvgLinear id="cyanWaveGrad" x1="0%" y1="100%" x2="40%" y2="0%">
+                  <Stop offset="0%" stopColor="#00F2FE" stopOpacity="0.2" />
+                  <Stop offset="45%" stopColor="#38BDF8" stopOpacity="0.85" />
+                  <Stop offset="100%" stopColor="#E0F2FE" stopOpacity="0.95" />
+                </SvgLinear>
+              </Defs>
+              {/* Organic fluid cyan wing curving up and left */}
+              <Path
+                d="M 50,56 C 36,54 22,46 25,32 C 28,19 42,26 46,38 C 48,44 49,50 50,56 Z"
+                fill="url(#cyanWaveGrad)"
+              />
+            </Svg>
+          </Animated.View>
+
+          {/* Ribbon Layer B: Right Magenta Glowing Wave Petal */}
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                transform: [
+                  { rotate: rightRotate },
+                  { translateY: rightTranslateY },
+                  { scaleX: rightScaleX },
+                ],
+              },
+            ]}
+            pointerEvents="none"
+          >
+            <Svg width={size} height={size} viewBox="0 0 100 100">
+              <Defs>
+                <SvgLinear id="magentaWaveGrad" x1="0%" y1="100%" x2="80%" y2="0%">
+                  <Stop offset="0%" stopColor="#E11D48" stopOpacity="0.2" />
+                  <Stop offset="40%" stopColor="#FF2A85" stopOpacity="0.88" />
+                  <Stop offset="100%" stopColor="#FCE7F3" stopOpacity="0.95" />
+                </SvgLinear>
+              </Defs>
+              {/* Organic fluid magenta wing curving up and right */}
+              <Path
+                d="M 50,56 C 64,54 78,46 75,32 C 72,19 58,26 54,38 C 52,44 51,50 50,56 Z"
+                fill="url(#magentaWaveGrad)"
+              />
+            </Svg>
+          </Animated.View>
+
+          {/* Ribbon Layer C: Fluid Center Petal Swirl */}
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                transform: [
+                  { scale: centerScale },
+                  { translateY: centerTranslateY },
+                ],
+              },
+            ]}
+            pointerEvents="none"
+          >
+            <Svg width={size} height={size} viewBox="0 0 100 100">
+              <Defs>
+                <SvgLinear id="centerPlumeGrad" x1="50%" y1="100%" x2="50%" y2="0%">
+                  <Stop offset="0%" stopColor="#A855F7" stopOpacity="0.3" />
+                  <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.95" />
+                  <Stop offset="100%" stopColor="#E0F2FE" stopOpacity="0.9" />
+                </SvgLinear>
+                <SvgLinear id="lowerSwirlGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <Stop offset="0%" stopColor="#38BDF8" stopOpacity="0.4" />
+                  <Stop offset="50%" stopColor="#FF2A85" stopOpacity="0.85" />
+                  <Stop offset="100%" stopColor="#FB7185" stopOpacity="0.5" />
+                </SvgLinear>
+              </Defs>
+              {/* Center upright plume */}
+              <Path
+                d="M 50,55 C 44,48 42,34 46,24 C 50,14 54,26 54,38 C 53,44 52,50 50,55 Z"
+                fill="url(#centerPlumeGrad)"
+              />
+              {/* Center-right plume */}
+              <Path
+                d="M 50,55 C 55,48 58,34 55,24 C 52,14 48,26 48,38 C 49,44 49,50 50,55 Z"
+                fill="url(#centerPlumeGrad)"
+                opacity={0.8}
+              />
+              {/* Lower liquid ribbon sweeping horizontally */}
+              <Path
+                d="M 28,54 C 38,48 48,60 58,52 C 68,44 75,54 75,54 C 75,54 66,64 54,58 C 42,52 34,62 28,54 Z"
+                fill="url(#lowerSwirlGrad)"
+              />
+            </Svg>
+          </Animated.View>
+
+          {/* 4. Brilliant Radiant Core Light (The glowing white Siri heart) */}
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                transform: [{ scale: corePulse }],
+              },
+            ]}
+            pointerEvents="none"
+          >
+            <Svg width={size} height={size} viewBox="0 0 100 100">
+              <Defs>
+                <RadialGradient id="siriCoreBloom" cx="50%" cy="48%" r="24%">
+                  <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
+                  <Stop offset="40%" stopColor="#E0F2FE" stopOpacity="0.9" />
+                  <Stop offset="70%" stopColor="#F472B6" stopOpacity="0.45" />
+                  <Stop offset="100%" stopColor="transparent" stopOpacity="0" />
+                </RadialGradient>
+              </Defs>
+              <Circle cx="50" cy="48" r="22" fill="url(#siriCoreBloom)" />
+            </Svg>
+          </Animated.View>
+
+          {/* 5. Glass Specular Highlight (Spherical curvature reflection) */}
+          <Svg width={size} height={size} viewBox="0 0 100 100" style={StyleSheet.absoluteFill} pointerEvents="none">
+            <Defs>
+              <SvgLinear id="glassHighlight" x1="50%" y1="0%" x2="50%" y2="100%">
+                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
+                <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.1" />
+                <Stop offset="100%" stopColor="transparent" stopOpacity="0" />
+              </SvgLinear>
+            </Defs>
+            {/* Top curved specular crescent */}
+            <Path
+              d="M 24,18 C 38,10 62,10 76,18 C 68,22 32,22 24,18 Z"
+              fill="url(#glassHighlight)"
+            />
+          </Svg>
         </Animated.View>
       </TouchableOpacity>
     </View>
@@ -208,77 +449,28 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 12,
+    marginVertical: 10,
   },
-  auraRing: {
+  ambientGlow: {
     position: 'absolute',
-    overflow: 'hidden',
-  },
-  haloRing: {
-    position: 'absolute',
-    padding: 2.5,
-    overflow: 'hidden',
-    shadowColor: '#38BDF8',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.65,
-    shadowRadius: 18,
-    elevation: 8,
-  },
-  haloGradient: {
-    flex: 1,
-    borderRadius: 999,
-  },
-  orbCoreWrapper: {
-    overflow: 'hidden',
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
-    elevation: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.18)',
-  },
-  orbCoreGradient: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  sphereShadow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#FF2D55',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.55,
+    shadowRadius: 22,
+    elevation: 12,
+  },
+  sphereBody: {
+    overflow: 'hidden',
     position: 'relative',
-  },
-  glossHighlight: {
-    position: 'absolute',
-    top: 0,
-    left: '12%',
-    right: '12%',
-    height: '42%',
-    borderRadius: 999,
-  },
-  soundWaveGroup: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4.5,
-    height: 48,
-    zIndex: 2,
-  },
-  soundWaveBar: {
-    width: 3.5,
-    borderRadius: 2,
-  },
-  wavePink: {
-    backgroundColor: '#FF2A85',
-  },
-  waveCyan: {
-    backgroundColor: '#38BDF8',
-  },
-  waveWhite: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#FFFFFF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  waveViolet: {
-    backgroundColor: '#A855F7',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
   },
 });
