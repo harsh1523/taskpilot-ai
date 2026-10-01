@@ -287,8 +287,9 @@ export default function App() {
             <Text style={styles.createTaskBtnText}>Create Task</Text>
           </TouchableOpacity>
 
-          {/* Techna Voice Assistant Siri Orb Button */}
+          {/* Techna Voice Assistant Robot Face with Blinking Eyes */}
           <TechnaOrb
+            variant="face"
             size={54}
             isListening={false}
             onPress={() => {
