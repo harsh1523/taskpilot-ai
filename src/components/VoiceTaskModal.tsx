@@ -409,7 +409,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
                   {isListening ? 'Listening...' : 'What would you like to schedule?'}
                 </Text>
                 <Text style={styles.siriSubPrompt}>
-                  Tap the orb or speak naturally
+                  Tap Techna or speak naturally
                 </Text>
               </View>
             )}
