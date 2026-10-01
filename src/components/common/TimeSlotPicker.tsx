@@ -8,7 +8,6 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { colors, spacing, radius, fontSizes, fontWeights, commonStyles } from '../../theme';
 import { playSpinnerTickSound } from '../../services/soundEffects';
@@ -203,61 +202,14 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* ================= MILKINSIDE GEN UI CARD ================= */}
-      <View style={styles.genCard}>
-        {/* Soft Ambient Aurora Glow */}
-        <LinearGradient
-          colors={['rgba(139, 92, 246, 0.18)', 'rgba(56, 189, 248, 0.06)', 'transparent']}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.ambientGlow}
-          pointerEvents="none"
-        />
-
-        {/* Header: Title Badge & Status Pill */}
-        <View style={styles.headerRow}>
-          <View style={styles.titleBadge}>
-            <Ionicons name="time" size={12} color={colors.primaryLight} style={{ marginRight: 5 }} />
-            <Text style={styles.titleBadgeText}>SCHEDULE TIME</Text>
-          </View>
-
-          <View
-            style={[
-              styles.statusPill,
-              {
-                backgroundColor: currentSlotOccupied.occupied
-                  ? 'rgba(239, 68, 68, 0.12)'
-                  : 'rgba(52, 211, 153, 0.12)',
-                borderColor: currentSlotOccupied.occupied
-                  ? 'rgba(239, 68, 68, 0.3)'
-                  : 'rgba(52, 211, 153, 0.3)',
-              },
-            ]}
-          >
-            <View
-              style={[
-                styles.statusDot,
-                { backgroundColor: currentSlotOccupied.occupied ? '#EF4444' : '#34D399' },
-              ]}
-            />
-            <Text
-              style={[
-                styles.statusText,
-                { color: currentSlotOccupied.occupied ? '#F87171' : '#34D399' },
-              ]}
-            >
-              {currentSlotOccupied.occupied ? 'Overlap' : 'Available'}
-            </Text>
-          </View>
-        </View>
-
-        {/* Start & End Dual Cards */}
-        <View style={styles.dualCardsRow}>
-          {/* Start Card */}
+      {/* ================= APPLE STYLE TIME PICKER CARD ================= */}
+      <View style={styles.appleCard}>
+        {/* 1. Apple Segmented Control: Starts vs Ends */}
+        <View style={styles.appleSegmentedContainer}>
           <TouchableOpacity
             style={[
-              styles.timeCard,
-              activeTarget === 'start' && styles.timeCardActive,
+              styles.appleSegment,
+              activeTarget === 'start' && styles.appleSegmentActive,
             ]}
             onPress={() => {
               playSpinnerTickSound(850);
@@ -266,43 +218,28 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
             }}
             activeOpacity={0.8}
           >
-            <View style={styles.cardHeaderRow}>
-              <View
-                style={[
-                  styles.cardIndicatorDot,
-                  { backgroundColor: activeTarget === 'start' ? colors.primaryLight : '#606072' },
-                ]}
-              />
-              <Text
-                style={[
-                  styles.cardLabel,
-                  activeTarget === 'start' && styles.cardLabelActive,
-                ]}
-              >
-                START
-              </Text>
-            </View>
-            <View style={styles.timeDigitsRow}>
-              <Text style={styles.cardDigits}>
-                {String(start12Hour).padStart(2, '0')}:{String(startMinute).padStart(2, '0')}
-              </Text>
-              <Text style={styles.cardMeridiem}>{isStartPm ? 'PM' : 'AM'}</Text>
-            </View>
+            <Text
+              style={[
+                styles.appleSegmentLabel,
+                activeTarget === 'start' && styles.appleSegmentLabelActive,
+              ]}
+            >
+              Starts
+            </Text>
+            <Text
+              style={[
+                styles.appleSegmentTime,
+                activeTarget === 'start' && styles.appleSegmentTimeActive,
+              ]}
+            >
+              {String(start12Hour).padStart(2, '0')}:{String(startMinute).padStart(2, '0')} {isStartPm ? 'PM' : 'AM'}
+            </Text>
           </TouchableOpacity>
 
-          {/* Duration Indicator Arrow */}
-          <View style={styles.bridgeContainer}>
-            <View style={styles.bridgePill}>
-              <Text style={styles.bridgeText}>{durLabel}</Text>
-              <Ionicons name="arrow-forward" size={11} color={colors.primaryLight} style={{ marginLeft: 3 }} />
-            </View>
-          </View>
-
-          {/* End Card */}
           <TouchableOpacity
             style={[
-              styles.timeCard,
-              activeTarget === 'end' && styles.timeCardActive,
+              styles.appleSegment,
+              activeTarget === 'end' && styles.appleSegmentActive,
             ]}
             onPress={() => {
               playSpinnerTickSound(850);
@@ -311,146 +248,121 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
             }}
             activeOpacity={0.8}
           >
-            <View style={styles.cardHeaderRow}>
-              <View
-                style={[
-                  styles.cardIndicatorDot,
-                  { backgroundColor: activeTarget === 'end' ? colors.primaryLight : '#606072' },
-                ]}
-              />
-              <Text
-                style={[
-                  styles.cardLabel,
-                  activeTarget === 'end' && styles.cardLabelActive,
-                ]}
-              >
-                END
-              </Text>
-            </View>
-            <View style={styles.timeDigitsRow}>
-              <Text style={styles.cardDigits}>
-                {String(end12Hour).padStart(2, '0')}:{String(endMinute).padStart(2, '0')}
-              </Text>
-              <Text style={styles.cardMeridiem}>{isEndPm ? 'PM' : 'AM'}</Text>
-            </View>
+            <Text
+              style={[
+                styles.appleSegmentLabel,
+                activeTarget === 'end' && styles.appleSegmentLabelActive,
+              ]}
+            >
+              Ends
+            </Text>
+            <Text
+              style={[
+                styles.appleSegmentTime,
+                activeTarget === 'end' && styles.appleSegmentTimeActive,
+              ]}
+            >
+              {String(end12Hour).padStart(2, '0')}:{String(endMinute).padStart(2, '0')} {isEndPm ? 'PM' : 'AM'}
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Interactive Tactile Time Dial (Adjusting Active Target) */}
-        <View style={styles.dialCard}>
-          <View style={styles.dialStepperRow}>
-            {/* Decrement Button */}
+        {/* 2. Apple Digital Clock & Stepper Row */}
+        <View style={styles.appleClockRow}>
+          {/* Minus Stepper */}
+          <TouchableOpacity
+            style={styles.appleStepperBtn}
+            onPress={() => handleStepHour(-1)}
+            activeOpacity={0.7}
+            accessibilityLabel="Decrease hour"
+          >
+            <Ionicons name="remove" size={20} color="#E0E0E6" />
+          </TouchableOpacity>
+
+          {/* Centered Time Capsule */}
+          <View style={styles.appleTimeCapsule}>
+            <Text style={styles.appleTimeDigits}>
+              {String(active12Hour).padStart(2, '0')}
+            </Text>
+            <Text style={styles.appleTimeColon}>:</Text>
+            <Text style={styles.appleTimeDigits}>
+              {String(activeMinute).padStart(2, '0')}
+            </Text>
+          </View>
+
+          {/* AM / PM Segmented Switch */}
+          <View style={styles.appleAmPmPill}>
             <TouchableOpacity
-              style={styles.dialStepBtn}
-              onPress={() => handleStepHour(-1)}
-              activeOpacity={0.7}
-              accessibilityLabel="Decrease hour"
+              style={[styles.appleAmPmBtn, !activeIsPm && styles.appleAmPmBtnActive]}
+              onPress={() => handleToggleMeridiem(false)}
+              activeOpacity={0.8}
             >
-              <Ionicons name="remove" size={20} color="#FFFFFF" />
+              <Text style={[styles.appleAmPmText, !activeIsPm && styles.appleAmPmTextActive]}>
+                AM
+              </Text>
             </TouchableOpacity>
-
-            {/* Large Digits Display */}
-            <View style={styles.dialDigitsGroup}>
-              <Text style={styles.dialBigNumber}>
-                {String(active12Hour).padStart(2, '0')}
-              </Text>
-              <Text style={styles.dialColon}>:</Text>
-              <Text style={styles.dialBigNumber}>
-                {String(activeMinute).padStart(2, '0')}
-              </Text>
-              <View style={styles.dialActiveBadge}>
-                <Text style={styles.dialActiveBadgeText}>{activeIsPm ? 'PM' : 'AM'}</Text>
-              </View>
-            </View>
-
-            {/* Increment Button */}
             <TouchableOpacity
-              style={styles.dialStepBtn}
-              onPress={() => handleStepHour(1)}
-              activeOpacity={0.7}
-              accessibilityLabel="Increase hour"
+              style={[styles.appleAmPmBtn, activeIsPm && styles.appleAmPmBtnActive]}
+              onPress={() => handleToggleMeridiem(true)}
+              activeOpacity={0.8}
             >
-              <Ionicons name="add" size={20} color="#FFFFFF" />
+              <Text style={[styles.appleAmPmText, activeIsPm && styles.appleAmPmTextActive]}>
+                PM
+              </Text>
             </TouchableOpacity>
           </View>
 
-          {/* AM/PM Switcher & Minute Options */}
-          <View style={styles.dialSubControlsRow}>
-            {/* AM / PM Segmented Capsule */}
-            <View style={styles.meridiemSwitch}>
-              <TouchableOpacity
-                style={[
-                  styles.meridiemBtn,
-                  !activeIsPm && styles.meridiemBtnActive,
-                ]}
-                onPress={() => handleToggleMeridiem(false)}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    styles.meridiemBtnText,
-                    !activeIsPm && styles.meridiemBtnTextActive,
-                  ]}
-                >
-                  AM
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.meridiemBtn,
-                  activeIsPm && styles.meridiemBtnActive,
-                ]}
-                onPress={() => handleToggleMeridiem(true)}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    styles.meridiemBtnText,
-                    activeIsPm && styles.meridiemBtnTextActive,
-                  ]}
-                >
-                  PM
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Minute Selector Pills */}
-            <View style={styles.minutePillsRow}>
-              {minuteOptions.map((m) => {
-                const isSelected = activeMinute === m;
-                return (
-                  <TouchableOpacity
-                    key={`min_${m}`}
-                    style={[
-                      styles.minuteChip,
-                      isSelected && styles.minuteChipActive,
-                    ]}
-                    onPress={() => handleSelectMinute(m)}
-                    activeOpacity={0.75}
-                  >
-                    <Text
-                      style={[
-                        styles.minuteChipText,
-                        isSelected && styles.minuteChipTextActive,
-                      ]}
-                    >
-                      :{String(m).padStart(2, '0')}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+          {/* Plus Stepper */}
+          <TouchableOpacity
+            style={styles.appleStepperBtn}
+            onPress={() => handleStepHour(1)}
+            activeOpacity={0.7}
+            accessibilityLabel="Increase hour"
+          >
+            <Ionicons name="add" size={20} color="#E0E0E6" />
+          </TouchableOpacity>
         </View>
 
-        {/* Quick Duration Preset Pills */}
-        <View style={styles.durationSection}>
-          <Text style={styles.durationSectionLabel}>DURATION</Text>
+        {/* 3. Apple Minute Chips (:00, :15, :30, :45) */}
+        <View style={styles.appleMinutesRow}>
+          {minuteOptions.map((m) => {
+            const isSelected = activeMinute === m;
+            return (
+              <TouchableOpacity
+                key={`min_${m}`}
+                style={[
+                  styles.appleMinuteChip,
+                  isSelected && styles.appleMinuteChipActive,
+                ]}
+                onPress={() => handleSelectMinute(m)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.appleMinuteText,
+                    isSelected && styles.appleMinuteTextActive,
+                  ]}
+                >
+                  :{String(m).padStart(2, '0')}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Hairline Divider */}
+        <View style={styles.appleDivider} />
+
+        {/* 4. Apple Duration Row */}
+        <View style={styles.appleDurationSection}>
+          <View style={styles.appleDurationHeader}>
+            <Text style={styles.appleDurationLabel}>DURATION</Text>
+            <Text style={styles.appleDurationValue}>{durLabel}</Text>
+          </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.durationScroll}
+            contentContainerStyle={styles.appleDurationScroll}
           >
             {DURATION_OPTIONS.map((opt) => {
               const isSelected = selectedDuration === opt.minutes;
@@ -458,8 +370,8 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
                 <TouchableOpacity
                   key={opt.minutes}
                   style={[
-                    styles.durationPill,
-                    isSelected && styles.durationPillActive,
+                    styles.appleDurationPill,
+                    isSelected && styles.appleDurationPillActive,
                   ]}
                   onPress={() => {
                     playSpinnerTickSound(850);
@@ -473,12 +385,12 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
                       isOccupied: occ.occupied,
                     });
                   }}
-                  activeOpacity={0.8}
+                  activeOpacity={0.75}
                 >
                   <Text
                     style={[
-                      styles.durationPillText,
-                      isSelected && styles.durationPillTextActive,
+                      styles.appleDurationPillText,
+                      isSelected && styles.appleDurationPillTextActive,
                     ]}
                   >
                     {opt.label}
@@ -489,12 +401,33 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
           </ScrollView>
         </View>
 
-        {/* Conflict Warning & One-Tap Shift Action */}
+        {/* 5. Apple Status & Conflict Indicator */}
+        <View style={styles.appleFooterRow}>
+          <View style={styles.appleStatusGroup}>
+            <View
+              style={[
+                styles.appleStatusDot,
+                { backgroundColor: currentSlotOccupied.occupied ? '#EF4444' : '#34D399' },
+              ]}
+            />
+            <Text
+              style={[
+                styles.appleStatusText,
+                { color: currentSlotOccupied.occupied ? '#F87171' : '#34D399' },
+              ]}
+            >
+              {currentSlotOccupied.occupied ? 'Overlap detected' : 'Available • No conflicts'}
+            </Text>
+          </View>
+          <Text style={styles.appleRangeSummary}>{currentSlotRange.rangeString}</Text>
+        </View>
+
+        {/* Conflict Shift Banner (when overlapping) */}
         {currentSlotOccupied.occupied && (
           <View style={styles.conflictBanner}>
             <View style={styles.conflictHeader}>
               <Ionicons name="warning-outline" size={15} color="#F87171" style={{ marginRight: 6 }} />
-              <Text style={styles.conflictTitle}>
+              <Text style={styles.conflictTitle} numberOfLines={1}>
                 Overlaps with &ldquo;{currentSlotOccupied.title}&rdquo;
               </Text>
             </View>
@@ -529,325 +462,250 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xs,
   },
 
-  // Milkinside Gen UI Card
-  genCard: {
-    backgroundColor: 'rgba(16, 16, 26, 0.95)',
-    borderRadius: 24,
+  // Apple Inset Grouped Card
+  appleCard: {
+    backgroundColor: 'rgba(24, 24, 32, 0.95)',
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
-    padding: spacing.md + 2,
+    padding: 16,
     marginBottom: spacing.md,
-    overflow: 'hidden',
-    position: 'relative',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  ambientGlow: {
-    position: 'absolute',
-    top: -40,
-    left: -40,
-    right: -40,
-    height: 180,
-    borderRadius: 90,
-  },
-
-  // Header Row
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  titleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.25)',
-  },
-  titleBadgeText: {
-    color: '#C4B5FD',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 9,
-    paddingVertical: 3.5,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 5,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-
-  // Start & End Dual Cards
-  dualCardsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  timeCard: {
-    flex: 1,
-    backgroundColor: 'rgba(22, 22, 34, 0.75)',
-    borderRadius: 18,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.07)',
-  },
-  timeCardActive: {
-    backgroundColor: 'rgba(139, 92, 246, 0.14)',
-    borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
-    shadowRadius: 10,
+    shadowRadius: 12,
     elevation: 4,
   },
-  cardHeaderRow: {
+
+  // 1. Apple Segmented Control: Starts vs Ends
+  appleSegmentedContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(118, 118, 128, 0.16)',
+    borderRadius: 14,
+    padding: 3,
+    marginBottom: 16,
+  },
+  appleSegment: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 11,
+    gap: 6,
   },
-  cardIndicatorDot: {
+  appleSegmentActive: {
+    backgroundColor: 'rgba(44, 44, 56, 0.95)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  appleSegmentLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#8E8E9E',
+  },
+  appleSegmentLabelActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  appleSegmentTime: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#8E8E9E',
+  },
+  appleSegmentTimeActive: {
+    color: colors.primaryLight,
+    fontWeight: '800',
+  },
+
+  // 2. Apple Digital Clock & Stepper Row
+  appleClockRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  appleStepperBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(120, 120, 128, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appleTimeCapsule: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(120, 120, 128, 0.18)',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  appleTimeDigits: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  appleTimeColon: {
+    fontSize: 26,
+    fontWeight: '400',
+    color: '#9898AA',
+    marginHorizontal: 4,
+    marginBottom: 2,
+  },
+  appleAmPmPill: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(118, 118, 128, 0.18)',
+    borderRadius: 12,
+    padding: 3,
+  },
+  appleAmPmBtn: {
+    paddingVertical: 7,
+    paddingHorizontal: 11,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appleAmPmBtnActive: {
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  appleAmPmText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#8E8E9E',
+  },
+  appleAmPmTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+
+  // 3. Apple Minute Chips
+  appleMinutesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(118, 118, 128, 0.12)',
+    borderRadius: 12,
+    padding: 3,
+    marginBottom: 14,
+  },
+  appleMinuteChip: {
+    flex: 1,
+    paddingVertical: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 9,
+  },
+  appleMinuteChipActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  appleMinuteText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#8E8E9E',
+  },
+  appleMinuteTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+
+  // Hairline Divider
+  appleDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginVertical: 10,
+  },
+
+  // 4. Apple Duration Section
+  appleDurationSection: {
+    marginBottom: 12,
+  },
+  appleDurationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  appleDurationLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#7E7E90',
+    letterSpacing: 0.6,
+  },
+  appleDurationValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primaryLight,
+  },
+  appleDurationScroll: {
+    gap: 8,
+    paddingVertical: 2,
+  },
+  appleDurationPill: {
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: 'rgba(118, 118, 128, 0.16)',
+  },
+  appleDurationPillActive: {
+    backgroundColor: colors.primary,
+  },
+  appleDurationPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9898AA',
+  },
+  appleDurationPillTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+
+  // 5. Apple Footer Status
+  appleFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 4,
+  },
+  appleStatusGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  appleStatusDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     marginRight: 6,
   },
-  cardLabel: {
-    color: '#8A8A9E',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.7,
-  },
-  cardLabelActive: {
-    color: colors.primaryLight,
-  },
-  timeDigitsRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
-  },
-  cardDigits: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-  },
-  cardMeridiem: {
-    color: colors.primaryLight,
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  bridgeContainer: {
-    paddingHorizontal: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bridgePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(139, 92, 246, 0.16)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
-  },
-  bridgeText: {
-    color: '#E0E0FC',
-    fontSize: 10,
-    fontWeight: '800',
-  },
-
-  // Interactive Tactile Time Dial
-  dialCard: {
-    backgroundColor: 'rgba(22, 22, 34, 0.65)',
-    borderRadius: 20,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-    marginBottom: spacing.md,
-  },
-  dialStepperRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.sm,
-  },
-  dialStepBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(32, 32, 48, 0.9)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dialDigitsGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dialBigNumber: {
-    fontSize: 34,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.8,
-  },
-  dialColon: {
-    fontSize: 28,
-    fontWeight: '300',
-    color: '#9494AC',
-    marginHorizontal: 4,
-  },
-  dialActiveBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    marginLeft: 10,
-  },
-  dialActiveBadgeText: {
-    color: '#FFFFFF',
+  appleStatusText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
   },
-
-  // AM/PM and Minutes row
-  dialSubControlsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: spacing.md - 2,
-    gap: 8,
-  },
-  meridiemSwitch: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(16, 16, 26, 0.85)',
-    borderRadius: 14,
-    padding: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  meridiemBtn: {
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  meridiemBtnActive: {
-    backgroundColor: colors.primary,
-  },
-  meridiemBtnText: {
-    color: '#8A8A9E',
+  appleRangeSummary: {
     fontSize: 12,
-    fontWeight: '700',
-  },
-  meridiemBtnTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-  },
-  minutePillsRow: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: 'rgba(16, 16, 26, 0.85)',
-    borderRadius: 14,
-    padding: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    gap: 2,
-  },
-  minuteChip: {
-    flex: 1,
-    paddingVertical: 7,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  minuteChipActive: {
-    backgroundColor: colors.primary,
-  },
-  minuteChipText: {
-    color: '#8A8A9E',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  minuteChipTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-  },
-
-  // Quick Duration Section
-  durationSection: {
-    marginBottom: spacing.xs,
-  },
-  durationSectionLabel: {
-    color: '#7E7E94',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    marginBottom: 6,
-  },
-  durationScroll: {
-    gap: 6,
-    paddingVertical: 2,
-  },
-  durationPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(24, 24, 36, 0.8)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  durationPillActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  durationPillText: {
-    color: '#8E8EA8',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  durationPillTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '900',
+    fontWeight: '600',
+    color: '#8E8E9E',
   },
 
   // Conflict Banner
   conflictBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    borderRadius: 14,
-    padding: spacing.md,
-    marginTop: spacing.md,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 12,
   },
   conflictHeader: {
     flexDirection: 'row',
@@ -857,21 +715,22 @@ const styles = StyleSheet.create({
   conflictTitle: {
     color: '#F87171',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
+    flex: 1,
   },
   shiftButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 9,
+    borderRadius: 10,
+    paddingVertical: 8,
     paddingHorizontal: 12,
-    marginTop: 6,
+    marginTop: 4,
   },
   shiftButtonText: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 });
