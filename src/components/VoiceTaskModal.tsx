@@ -7,8 +7,11 @@ import {
   StyleSheet,
   Platform,
   StatusBar,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Category, Priority, Task } from '../types/task';
 import { colors } from '../theme/colors';
 import { playSpinnerTickSound, speakWithTechna } from '../services/soundEffects';
@@ -329,10 +332,38 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
     >
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <View style={styles.overlay}>
+        {/* iOS Frosted Glass Backdrop Blur */}
+        <BlurView
+          intensity={Platform.OS === 'ios' ? 30 : 50}
+          tint="dark"
+          style={StyleSheet.absoluteFill}
+        />
+
         {/* Techna Siri Edge Display Border Glow */}
         <TechnaDisplayBorderGlow active={isListening} />
 
         <View style={styles.modalCard}>
+          {/* iOS Frosted Glass Card Blur Effect */}
+          <BlurView
+            intensity={Platform.OS === 'ios' ? 70 : 100}
+            tint="dark"
+            style={StyleSheet.absoluteFill}
+          />
+
+          {/* iOS Specular Top Sheen Reflection */}
+          <LinearGradient
+            colors={['rgba(255, 255, 255, 0.22)', 'rgba(255, 255, 255, 0.04)', 'transparent']}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 0.4 }}
+            style={styles.topSheen}
+            pointerEvents="none"
+          />
+
+          {/* iOS Sheet Drag Handle Capsule */}
+          <View style={styles.sheetHandleWrapper}>
+            <View style={styles.sheetHandle} />
+          </View>
+
           {/* 1. Minimalist Apple Siri Header Bar */}
           <View style={styles.headerRow}>
             <View style={styles.siriHeaderGroup}>
@@ -357,21 +388,22 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
               )}
               <CircleIconButton
                 icon="close"
-                size={32}
-                iconSize={18}
-                color="#8A8A9C"
-                backgroundColor="rgba(255, 255, 255, 0.08)"
+                size={34}
+                iconSize={19}
+                color="#A0A0B2"
+                backgroundColor="rgba(255, 255, 255, 0.10)"
                 onPress={onClose}
               />
             </View>
           </View>
 
-          {/* 2. Hero Apple Siri Orb */}
+          {/* 2. Hero 3D Companion Robot (Big & Spaciously Floating) */}
           <View style={styles.orbWrapper}>
             <TechnaOrb
+              variant="full"
               isListening={isListening}
               onPress={() => (isListening ? stopSpeechRecognition() : startSpeechRecognition())}
-              size={140}
+              size={180}
             />
           </View>
 
@@ -379,7 +411,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
           <View style={styles.transcriptContainer}>
             {currentStep === 'done' ? (
               <View style={styles.centerStatusGroup}>
-                <Ionicons name="checkmark-circle" size={26} color="#34D399" style={{ marginBottom: 4 }} />
+                <Ionicons name="checkmark-circle" size={32} color="#34D399" style={{ marginBottom: 6 }} />
                 <Text style={styles.siriHeroPrompt}>Task Scheduled</Text>
                 <Text style={styles.siriSubPrompt}>&ldquo;{taskTitle}&rdquo;</Text>
               </View>
@@ -390,17 +422,17 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
                 </Text>
                 <View style={styles.taskMetaRow}>
                   <View style={styles.metaChip}>
-                    <Ionicons name="calendar-outline" size={12} color="#38BDF8" style={{ marginRight: 4 }} />
+                    <Ionicons name="calendar-outline" size={13} color="#38BDF8" style={{ marginRight: 5 }} />
                     <Text style={styles.metaChipText}>{selectedDate} • {selectedTimeRange}</Text>
                   </View>
                   <View style={styles.metaChip}>
-                    <Ionicons name="flag-outline" size={12} color="#EC4899" style={{ marginRight: 4 }} />
+                    <Ionicons name="flag-outline" size={13} color="#EC4899" style={{ marginRight: 5 }} />
                     <Text style={styles.metaChipText}>{selectedPriority.toUpperCase()}</Text>
                   </View>
                 </View>
               </View>
             ) : liveTranscript ? (
-              <Text style={styles.liveTranscriptText} numberOfLines={2}>
+              <Text style={styles.liveTranscriptText} numberOfLines={3}>
                 &ldquo;{liveTranscript}&rdquo;
               </Text>
             ) : (
@@ -419,7 +451,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
           {occupiedWarning && conflictingInfo && (
             <View style={styles.conflictAlertCard}>
               <View style={styles.conflictHeader}>
-                <Ionicons name="alert-circle" size={15} color="#F87171" style={{ marginRight: 6 }} />
+                <Ionicons name="alert-circle" size={16} color="#F87171" style={{ marginRight: 6 }} />
                 <Text style={styles.conflictTitle} numberOfLines={1}>
                   Slot occupied by &ldquo;{conflictingInfo.title}&rdquo;
                 </Text>
@@ -430,7 +462,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
                   onPress={handleShiftOccupiedSlot}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="swap-horizontal" size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Ionicons name="swap-horizontal" size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
                   <Text style={styles.conflictShiftText}>
                     Shift to {conflictingInfo.nextAvailableSlot.rangeString}
                   </Text>
@@ -438,38 +470,68 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
               )}
             </View>
           )}
+
+          {/* Bottom spacing anchor */}
+          <View style={{ height: 8 }} />
         </View>
       </View>
     </Modal>
   );
 };
 
+const { height: screenHeight } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(5, 5, 8, 0.88)',
+    backgroundColor: 'rgba(4, 4, 10, 0.62)',
     justifyContent: 'flex-end',
   },
   modalCard: {
-    backgroundColor: 'rgba(20, 20, 28, 0.97)',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingTop: 18,
+    height: Math.min(screenHeight * 0.82, 740),
+    minHeight: 560,
+    backgroundColor: Platform.OS === 'ios' ? 'rgba(22, 18, 36, 0.68)' : 'rgba(18, 14, 28, 0.92)',
+    borderTopLeftRadius: 38,
+    borderTopRightRadius: 38,
+    paddingTop: 10,
     paddingBottom: Platform.OS === 'ios' ? 44 : 32,
-    paddingHorizontal: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.09)',
+    paddingHorizontal: 22,
+    borderWidth: 1.2,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    borderBottomWidth: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: -14 },
+    shadowOpacity: 0.6,
+    shadowRadius: 32,
+    elevation: 20,
+    overflow: 'hidden',
+    justifyContent: 'space-between',
+  },
+  topSheen: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+  },
+  sheetHandleWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    marginBottom: 4,
+  },
+  sheetHandle: {
+    width: 38,
+    height: 4.5,
+    borderRadius: 2.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.28)',
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    paddingHorizontal: 2,
+    marginBottom: 4,
   },
   siriHeaderGroup: {
     flexDirection: 'row',
@@ -491,14 +553,14 @@ const styles = StyleSheet.create({
   },
   siriTitleText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     letterSpacing: -0.2,
-    marginRight: 6,
+    marginRight: 8,
   },
   siriSubtitleText: {
-    color: '#8E8E9E',
-    fontSize: 12,
+    color: '#9E9EB2',
+    fontSize: 13,
     fontWeight: '500',
   },
   headerRightGroup: {
@@ -525,37 +587,39 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // 2. Hero Apple Siri Orb
+  // 2. Hero Techna Robot Companion
   orbWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 14,
+    flex: 1,
+    marginVertical: 10,
   },
 
   // 3. Dynamic Siri Headline / Transcript
   transcriptContainer: {
-    minHeight: 64,
+    minHeight: 84,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
   centerStatusGroup: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   siriHeroPrompt: {
-    fontSize: 22,
+    fontSize: 27,
     fontWeight: '700',
     color: '#FFFFFF',
     textAlign: 'center',
-    letterSpacing: -0.4,
+    letterSpacing: -0.5,
+    lineHeight: 34,
   },
   siriSubPrompt: {
-    fontSize: 13,
-    color: '#8E8E9E',
+    fontSize: 15,
+    color: '#A2A2B8',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 8,
     fontWeight: '500',
   },
   heroTextGroup: {
@@ -563,22 +627,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   liveTranscriptText: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '600',
     color: '#38BDF8',
     textAlign: 'center',
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
+    lineHeight: 30,
   },
   recognizedGroup: {
     alignItems: 'center',
   },
   taskTitleHeadline: {
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: '700',
     color: '#FFFFFF',
     textAlign: 'center',
-    letterSpacing: -0.4,
-    marginBottom: 8,
+    letterSpacing: -0.5,
+    lineHeight: 32,
+    marginBottom: 10,
   },
   taskMetaRow: {
     flexDirection: 'row',
@@ -588,13 +654,13 @@ const styles = StyleSheet.create({
   metaChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.07)',
-    paddingHorizontal: 10,
-    paddingVertical: 4.5,
-    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 12,
+    paddingVertical: 5.5,
+    borderRadius: 12,
   },
   metaChipText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     color: '#E0E0EA',
   },

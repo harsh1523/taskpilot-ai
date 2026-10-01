@@ -17,7 +17,6 @@ export const IsometricCubeIllustration: React.FC<IsometricCubeIllustrationProps>
   const sparkle1 = useRef(new Animated.Value(0)).current;
   const sparkle2 = useRef(new Animated.Value(0)).current;
   const sparkle3 = useRef(new Animated.Value(0)).current;
-  const auraPulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     // 1. Organic Float Levitation
@@ -69,26 +68,7 @@ export const IsometricCubeIllustration: React.FC<IsometricCubeIllustrationProps>
         }),
       ])
     );
-    shadowLoop.start();
-
-    // 4. Subtle Ambient Head Aura Breathing
-    const auraLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(auraPulse, {
-          toValue: 1.15,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(auraPulse, {
-          toValue: 0.95,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    auraLoop.start();
-
-    // 5. Drifting Magical Floating Sparkles
+    // 4. Drifting Magical Floating Sparkles
     const s1Loop = Animated.loop(
       Animated.sequence([
         Animated.timing(sparkle1, { toValue: 1, duration: 2200, useNativeDriver: true }),
@@ -119,7 +99,6 @@ export const IsometricCubeIllustration: React.FC<IsometricCubeIllustrationProps>
       hoverLoop.stop();
       tiltLoop.stop();
       shadowLoop.stop();
-      auraLoop.stop();
       s1Loop.stop();
       s2Loop.stop();
       s3Loop.stop();
@@ -153,21 +132,7 @@ export const IsometricCubeIllustration: React.FC<IsometricCubeIllustrationProps>
 
   return (
     <View style={[styles.container, { width: size + 36, height: robotHeight + 44 }]}>
-      {/* 1. Ambient Background Violet Aura */}
-      <Animated.View
-        style={[
-          styles.ambientHalo,
-          {
-            width: size * 1.15,
-            height: size * 1.15,
-            borderRadius: (size * 1.15) / 2,
-            transform: [{ scale: auraPulse }],
-          },
-        ]}
-        pointerEvents="none"
-      />
-
-      {/* 2. Floating Energy Sparkles */}
+      {/* 1. Floating Energy Sparkles */}
       {/* Sparkle 1 (Top Right) */}
       <Animated.View
         style={[
@@ -325,16 +290,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
-  },
-  ambientHalo: {
-    position: 'absolute',
-    top: '10%',
-    backgroundColor: 'rgba(168, 85, 247, 0.12)',
-    zIndex: 0,
-    shadowColor: '#A855F7',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 36,
   },
   sparkleItem: {
     position: 'absolute',
