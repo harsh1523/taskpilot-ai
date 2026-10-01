@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, Animated, Platform, Image } from 'react-native';
 import Svg, { Defs, RadialGradient, Stop, Ellipse } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { playSpinnerTickSound } from '../../services/soundEffects';
 
@@ -13,106 +14,124 @@ interface TechnaOrbProps {
 export const TechnaOrb: React.FC<TechnaOrbProps> = ({
   isListening,
   onPress,
-  size = 110,
+  size = 120,
 }) => {
   // Animation Values
   const hoverAnim = useRef(new Animated.Value(0)).current;
   const tiltAnim = useRef(new Animated.Value(0)).current;
-  const waveAnim = useRef(new Animated.Value(0)).current;
   const glowScale = useRef(new Animated.Value(1)).current;
   const rippleAnim = useRef(new Animated.Value(0)).current;
+  const ripple2Anim = useRef(new Animated.Value(0)).current;
+  const sparklePulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // 1. Organic Floating Hover (Levitation)
+    // 1. Organic Float Levitation
     const hoverLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(hoverAnim, {
           toValue: 1,
-          duration: isListening ? 650 : 1500,
+          duration: isListening ? 600 : 1500,
           useNativeDriver: true,
         }),
         Animated.timing(hoverAnim, {
           toValue: -1,
-          duration: isListening ? 650 : 1500,
+          duration: isListening ? 600 : 1500,
           useNativeDriver: true,
         }),
       ])
     );
     hoverLoop.start();
 
-    // 2. Playful Body Tilt
+    // 2. Playful Body Tilt & Balance
     const tiltLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(tiltAnim, {
           toValue: 1,
-          duration: isListening ? 750 : 1800,
+          duration: isListening ? 700 : 1900,
           useNativeDriver: true,
         }),
         Animated.timing(tiltAnim, {
           toValue: -1,
-          duration: isListening ? 750 : 1800,
+          duration: isListening ? 700 : 1900,
           useNativeDriver: true,
         }),
       ])
     );
     tiltLoop.start();
 
-    // 3. Subtle Breathing / Hover Scale
-    const waveLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(waveAnim, {
-          toValue: 1,
-          duration: isListening ? 450 : 1200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(waveAnim, {
-          toValue: 0,
-          duration: isListening ? 450 : 1200,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    waveLoop.start();
-
-    // 4. Ground Thruster Glow Inverse-Breathing
+    // 3. Ground Thruster Glow Inverse-Breathing
     const glowLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(glowScale, {
-          toValue: 1.25,
-          duration: isListening ? 650 : 1500,
+          toValue: 1.35,
+          duration: isListening ? 600 : 1500,
           useNativeDriver: true,
         }),
         Animated.timing(glowScale, {
-          toValue: 0.85,
-          duration: isListening ? 650 : 1500,
+          toValue: 0.8,
+          duration: isListening ? 600 : 1500,
           useNativeDriver: true,
         }),
       ])
     );
     glowLoop.start();
 
-    // 5. Listening Soundwave Ripple Rings
+    // 4. Sparkle Shimmer Loop
+    const sparkleLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(sparklePulse, {
+          toValue: 1,
+          duration: 1200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(sparklePulse, {
+          toValue: 0,
+          duration: 1200,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    sparkleLoop.start();
+
+    // 5. Dual Concentric Listening Ripple Rings
     let rippleLoop: Animated.CompositeAnimation | null = null;
+    let ripple2Loop: Animated.CompositeAnimation | null = null;
     if (isListening) {
       rippleAnim.setValue(0);
+      ripple2Anim.setValue(0);
+
       rippleLoop = Animated.loop(
         Animated.timing(rippleAnim, {
           toValue: 1,
-          duration: 1200,
+          duration: 1100,
           useNativeDriver: true,
         })
       );
       rippleLoop.start();
+
+      ripple2Loop = Animated.loop(
+        Animated.sequence([
+          Animated.delay(500),
+          Animated.timing(ripple2Anim, {
+            toValue: 1,
+            duration: 1100,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      ripple2Loop.start();
     } else {
       rippleAnim.setValue(0);
+      ripple2Anim.setValue(0);
     }
 
     return () => {
       hoverLoop.stop();
       tiltLoop.stop();
-      waveLoop.stop();
       glowLoop.stop();
+      sparkleLoop.stop();
       if (rippleLoop) rippleLoop.stop();
+      if (ripple2Loop) ripple2Loop.stop();
     };
   }, [isListening]);
 
@@ -124,56 +143,112 @@ export const TechnaOrb: React.FC<TechnaOrbProps> = ({
     onPress();
   };
 
-  // Interpolated Motion
+  // Organic Motion Physics
   const translateY = hoverAnim.interpolate({
     inputRange: [-1, 1],
-    outputRange: isListening ? [-9, 9] : [-6, 6],
+    outputRange: isListening ? [-11, 11] : [-7, 7],
   });
 
   const rotate = tiltAnim.interpolate({
     inputRange: [-1, 1],
-    outputRange: ['-3.5deg', '3.5deg'],
+    outputRange: isListening ? ['-4.5deg', '4.5deg'] : ['-3deg', '3deg'],
   });
 
-  const scale = waveAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: isListening ? [0.98, 1.05] : [0.99, 1.02],
+  const scaleX = hoverAnim.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: isListening ? [0.96, 1, 1.045] : [0.98, 1, 1.025],
   });
 
-  const robotHeight = size * 1.26;
-  const shadowWidth = size * 0.75;
-  const shadowHeight = size * 0.28;
+  const scaleY = hoverAnim.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: isListening ? [1.04, 1, 0.96] : [1.02, 1, 0.98],
+  });
+
+  const robotHeight = size * 1.28;
+  const shadowWidth = size * 0.78;
+  const shadowHeight = size * 0.3;
 
   return (
-    <View style={[styles.container, { width: size + 20, height: robotHeight + 24 }]}>
+    <View style={[styles.container, { width: size + 24, height: robotHeight + 28 }]}>
       {/* 1. Concentric Listening Ripple Energy Rings */}
       {isListening && (
-        <Animated.View
-          style={[
-            styles.rippleRing,
-            {
-              width: size * 1.35,
-              height: size * 1.35,
-              borderRadius: (size * 1.35) / 2,
-              transform: [
-                {
-                  scale: rippleAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.75, 1.45],
-                  }),
-                },
-              ],
-              opacity: rippleAnim.interpolate({
-                inputRange: [0, 0.5, 1],
-                outputRange: [0.75, 0.35, 0],
-              }),
-            },
-          ]}
-          pointerEvents="none"
-        />
+        <>
+          <Animated.View
+            style={[
+              styles.rippleRing,
+              {
+                width: size * 1.25,
+                height: size * 1.25,
+                borderRadius: (size * 1.25) / 2,
+                transform: [
+                  {
+                    scale: rippleAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.75, 1.45],
+                    }),
+                  },
+                ],
+                opacity: rippleAnim.interpolate({
+                  inputRange: [0, 0.4, 1],
+                  outputRange: [0.8, 0.4, 0],
+                }),
+              },
+            ]}
+            pointerEvents="none"
+          />
+          <Animated.View
+            style={[
+              styles.rippleRing,
+              {
+                width: size * 1.25,
+                height: size * 1.25,
+                borderRadius: (size * 1.25) / 2,
+                transform: [
+                  {
+                    scale: ripple2Anim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.75, 1.45],
+                    }),
+                  },
+                ],
+                opacity: ripple2Anim.interpolate({
+                  inputRange: [0, 0.4, 1],
+                  outputRange: [0.7, 0.35, 0],
+                }),
+              },
+            ]}
+            pointerEvents="none"
+          />
+        </>
       )}
 
-      {/* 2. Floating Robot Companion (Touchable) */}
+      {/* 2. Floating Magical Sparkle on Top-Right */}
+      <Animated.View
+        style={[
+          styles.sparkleBadge,
+          {
+            top: size > 80 ? 6 : 0,
+            right: size > 80 ? 10 : 2,
+            opacity: sparklePulse.interpolate({
+              inputRange: [0, 0.5, 1],
+              outputRange: [0.4, 1, 0.4],
+            }),
+            transform: [
+              {
+                scale: sparklePulse.interpolate({
+                  inputRange: [0, 0.5, 1],
+                  outputRange: [0.85, 1.2, 0.85],
+                }),
+              },
+            ],
+          },
+        ]}
+        pointerEvents="none"
+      >
+        <Ionicons name="sparkles" size={size > 80 ? 16 : 11} color="#E879F9" />
+      </Animated.View>
+
+      {/* 3. Floating Robot Companion (Touchable) */}
       <TouchableOpacity
         onPress={handlePress}
         activeOpacity={0.92}
@@ -184,7 +259,7 @@ export const TechnaOrb: React.FC<TechnaOrbProps> = ({
           style={[
             styles.robotWrapper,
             {
-              transform: [{ translateY }, { rotate }, { scale }],
+              transform: [{ translateY }, { rotate }, { scaleX }, { scaleY }],
             },
           ]}
         >
@@ -196,7 +271,7 @@ export const TechnaOrb: React.FC<TechnaOrbProps> = ({
         </Animated.View>
       </TouchableOpacity>
 
-      {/* 3. Glowing Neon Purple Levitation / Thruster Underglow */}
+      {/* 4. Glowing Neon Purple Levitation Thruster Underglow */}
       <Animated.View
         style={[
           styles.groundShadow,
@@ -205,7 +280,7 @@ export const TechnaOrb: React.FC<TechnaOrbProps> = ({
             height: shadowHeight,
             bottom: 2,
             transform: [{ scale: glowScale }],
-            opacity: isListening ? 0.95 : 0.72,
+            opacity: isListening ? 0.98 : 0.74,
           },
         ]}
         pointerEvents="none"
@@ -213,9 +288,9 @@ export const TechnaOrb: React.FC<TechnaOrbProps> = ({
         <Svg width={shadowWidth} height={shadowHeight} viewBox="0 0 100 40">
           <Defs>
             <RadialGradient id="thrusterGlow" cx="50%" cy="50%" rx="50%" ry="50%">
-              <Stop offset="0%" stopColor="#C084FC" stopOpacity="0.9" />
-              <Stop offset="35%" stopColor="#9333EA" stopOpacity="0.6" />
-              <Stop offset="75%" stopColor="#6B21A8" stopOpacity="0.25" />
+              <Stop offset="0%" stopColor="#C084FC" stopOpacity="0.95" />
+              <Stop offset="32%" stopColor="#9333EA" stopOpacity="0.65" />
+              <Stop offset="68%" stopColor="#6B21A8" stopOpacity="0.25" />
               <Stop offset="100%" stopColor="transparent" stopOpacity="0" />
             </RadialGradient>
           </Defs>
@@ -254,5 +329,9 @@ const styles = StyleSheet.create({
     borderColor: '#C084FC',
     zIndex: 0,
     backgroundColor: 'rgba(192, 132, 252, 0.08)',
+  },
+  sparkleBadge: {
+    position: 'absolute',
+    zIndex: 3,
   },
 });

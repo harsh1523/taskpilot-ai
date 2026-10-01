@@ -89,9 +89,9 @@ export const SplashScreenView: React.FC<SplashScreenViewProps> = ({ onFinish }) 
           },
         ]}
       >
-        {/* Signature 3D Isometric Geometric Wireframe Cube */}
+        {/* 3D Floating Companion Robot */}
         <View style={styles.illustrationWrapper}>
-          <IsometricCubeIllustration size={Math.min(width * 0.58, 240)} />
+          <IsometricCubeIllustration size={Math.min(width * 0.72, 290)} />
         </View>
 
         {/* Brand Title */}

@@ -67,14 +67,14 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onStart }) =
       <SafeAreaView style={styles.safeArea}>
         {/* Main Content */}
         <View style={styles.content}>
-          {/* 3D Geometric Isometric Wireframe with Floating Levitation */}
+          {/* 3D Floating Companion Robot */}
           <Animated.View
             style={[
               styles.illustrationWrapper,
               { transform: [{ translateY: floatAnim }] },
             ]}
           >
-            <IsometricCubeIllustration size={Math.min(width * 0.72, 300)} />
+            <IsometricCubeIllustration size={Math.min(width * 0.84, 330)} />
           </Animated.View>
 
           {/* Heading and Subtitle */}

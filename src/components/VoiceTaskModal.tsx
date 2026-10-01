@@ -371,7 +371,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
             <TechnaOrb
               isListening={isListening}
               onPress={() => (isListening ? stopSpeechRecognition() : startSpeechRecognition())}
-              size={104}
+              size={140}
             />
           </View>
 
