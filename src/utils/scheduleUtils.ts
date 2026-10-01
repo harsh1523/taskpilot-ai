@@ -202,11 +202,12 @@ export function minutesToAmPm(totalMinutes: number): string {
   return `${hh}:${mm} ${ampm}`;
 }
 
-/**
- * Computes human-readable time range string, display label with duration, and minute boundaries.
- */
-export function computeTimeRange(startHour: number, durationMinutes: number): TimeRangeResult {
-  const startMinTotal = startHour * 60;
+export function computeTimeRange(
+  startHour: number,
+  durationMinutes: number,
+  startMinute: number = 0
+): TimeRangeResult {
+  const startMinTotal = startHour * 60 + startMinute;
   const endMinTotal = startMinTotal + durationMinutes;
 
   const startTime = minutesToAmPm(startMinTotal);

@@ -80,9 +80,23 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<'radial' | 'timeline'>('radial');
   const [timeFilterPeriod, setTimeFilterPeriod] = useState<'All' | 'Morning' | 'Afternoon' | 'Night'>('All');
+  const [activeTarget, setActiveTarget] = useState<'start' | 'end'>('start');
+  const [startMinute, setStartMinute] = useState<number>(0);
 
-  const isPm = selectedStartHour >= 12;
-  const current12Hour = selectedStartHour % 12 === 0 ? 12 : selectedStartHour % 12;
+  const isStartPm = selectedStartHour >= 12;
+  const start12Hour = selectedStartHour % 12 === 0 ? 12 : selectedStartHour % 12;
+
+  const startTotalMinutes = selectedStartHour * 60 + startMinute;
+  const endTotalMinutes = startTotalMinutes + selectedDuration;
+
+  const endHour24 = Math.floor(endTotalMinutes / 60) % 24;
+  const endMinute = endTotalMinutes % 60;
+  const isEndPm = endHour24 >= 12;
+  const end12Hour = endHour24 % 12 === 0 ? 12 : endHour24 % 12;
+
+  const active12Hour = activeTarget === 'start' ? start12Hour : end12Hour;
+  const activeIsPm = activeTarget === 'start' ? isStartPm : isEndPm;
+  const activeMinute = activeTarget === 'start' ? startMinute : endMinute;
 
   const triggerHaptic = () => {
     if (Platform.OS !== 'web') {
@@ -90,7 +104,7 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
     }
   };
 
-  // Convert 12h display number (1..12) with current AM/PM to 24h
+  // Convert 12h display number (1..12) with AM/PM to 24h
   const to24Hour = (h12: number, pm: boolean): number => {
     if (pm) {
       return h12 === 12 ? 12 : h12 + 12;
@@ -98,38 +112,124 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
     return h12 === 12 ? 0 : h12;
   };
 
-  // Handle Hour Selection on Dial
+  // Format 12-hour label for display
+  const format12hString = (h24: number, min: number): string => {
+    const ampm = h24 >= 12 ? 'PM' : 'AM';
+    let h = h24 % 12;
+    if (h === 0) h = 12;
+    const hh = h < 10 ? `0${h}` : `${h}`;
+    const mm = min < 10 ? `0${min}` : `${min}`;
+    return `${hh}:${mm} ${ampm}`;
+  };
+
+  // Handle Hour Selection on Dial (adjusts Start or End depending on activeTarget)
   const handleSelectClockHour = (h12: number) => {
     playSpinnerTickSound(900);
     triggerHaptic();
-    const new24H = to24Hour(h12, isPm);
-    const range = computeTimeRange(new24H, selectedDuration);
-    const occ = checkSlotConflict(range.startMinutes, selectedDuration, occupiedSchedule);
-    onSelectSlot({
-      startHour: new24H,
-      rangeString: range.rangeString,
-      isOccupied: occ.occupied,
-    });
+
+    if (activeTarget === 'start') {
+      const new24H = to24Hour(h12, isStartPm);
+      const range = computeTimeRange(new24H, selectedDuration, startMinute);
+      const occ = checkSlotConflict(range.startMinutes, selectedDuration, occupiedSchedule);
+      onSelectSlot({
+        startHour: new24H,
+        rangeString: range.rangeString,
+        isOccupied: occ.occupied,
+      });
+    } else {
+      // User is selecting End Hour on dial
+      let targetPm = isEndPm;
+      // Auto-switch to PM if start is AM and chosen hour is earlier than or equal to start hour
+      if (!isStartPm && !isEndPm && h12 <= (selectedStartHour % 12)) {
+        targetPm = true;
+      }
+      const newEnd24 = to24Hour(h12, targetPm);
+      const newEndTotal = newEnd24 * 60 + endMinute;
+      let newDuration = newEndTotal - startTotalMinutes;
+      if (newDuration <= 0) {
+        newDuration += 1440; // Span across midnight
+      }
+      onSelectDuration(newDuration);
+      const range = computeTimeRange(selectedStartHour, newDuration, startMinute);
+      const occ = checkSlotConflict(startTotalMinutes, newDuration, occupiedSchedule);
+      onSelectSlot({
+        startHour: selectedStartHour,
+        rangeString: range.rangeString,
+        isOccupied: occ.occupied,
+      });
+    }
   };
 
-  // Toggle AM / PM
+  // Toggle AM / PM for active boundary
   const handleToggleMeridiem = (targetPm: boolean) => {
-    if (targetPm === isPm) return;
+    if (targetPm === activeIsPm) return;
     playSpinnerTickSound(950);
     triggerHaptic();
-    const new24H = to24Hour(current12Hour, targetPm);
-    const range = computeTimeRange(new24H, selectedDuration);
-    const occ = checkSlotConflict(range.startMinutes, selectedDuration, occupiedSchedule);
-    onSelectSlot({
-      startHour: new24H,
-      rangeString: range.rangeString,
-      isOccupied: occ.occupied,
-    });
+
+    if (activeTarget === 'start') {
+      const new24H = to24Hour(start12Hour, targetPm);
+      const range = computeTimeRange(new24H, selectedDuration, startMinute);
+      const occ = checkSlotConflict(range.startMinutes, selectedDuration, occupiedSchedule);
+      onSelectSlot({
+        startHour: new24H,
+        rangeString: range.rangeString,
+        isOccupied: occ.occupied,
+      });
+    } else {
+      // Toggle End Meridiem
+      const newEnd24 = to24Hour(end12Hour, targetPm);
+      const newEndTotal = newEnd24 * 60 + endMinute;
+      let newDuration = newEndTotal - startTotalMinutes;
+      if (newDuration <= 0) {
+        newDuration += 1440;
+      }
+      onSelectDuration(newDuration);
+      const range = computeTimeRange(selectedStartHour, newDuration, startMinute);
+      const occ = checkSlotConflict(startTotalMinutes, newDuration, occupiedSchedule);
+      onSelectSlot({
+        startHour: selectedStartHour,
+        rangeString: range.rangeString,
+        isOccupied: occ.occupied,
+      });
+    }
+  };
+
+  // Handle Minute Selection (:00, :15, :30, :45)
+  const handleSelectMinute = (m: number) => {
+    playSpinnerTickSound(900);
+    triggerHaptic();
+
+    if (activeTarget === 'start') {
+      setStartMinute(m);
+      const newStartTotal = selectedStartHour * 60 + m;
+      const range = computeTimeRange(selectedStartHour, selectedDuration, m);
+      const occ = checkSlotConflict(newStartTotal, selectedDuration, occupiedSchedule);
+      onSelectSlot({
+        startHour: selectedStartHour,
+        rangeString: range.rangeString,
+        isOccupied: occ.occupied,
+      });
+    } else {
+      // Change End Minute
+      const newEndTotal = endHour24 * 60 + m;
+      let newDuration = newEndTotal - startTotalMinutes;
+      if (newDuration <= 0) {
+        newDuration += 1440;
+      }
+      onSelectDuration(newDuration);
+      const range = computeTimeRange(selectedStartHour, newDuration, startMinute);
+      const occ = checkSlotConflict(startTotalMinutes, newDuration, occupiedSchedule);
+      onSelectSlot({
+        startHour: selectedStartHour,
+        rangeString: range.rangeString,
+        isOccupied: occ.occupied,
+      });
+    }
   };
 
   const currentSlotRange = useMemo(() => {
-    return computeTimeRange(selectedStartHour, selectedDuration);
-  }, [selectedStartHour, selectedDuration]);
+    return computeTimeRange(selectedStartHour, selectedDuration, startMinute);
+  }, [selectedStartHour, selectedDuration, startMinute]);
 
   const currentSlotOccupied = useMemo(() => {
     return checkSlotConflict(currentSlotRange.startMinutes, selectedDuration, occupiedSchedule);
@@ -142,7 +242,7 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
 
   const allTimeSlots = useMemo(() => {
     return baseHours.map((item) => {
-      const slot = computeTimeRange(item.hour, selectedDuration);
+      const slot = computeTimeRange(item.hour, selectedDuration, startMinute);
       const occ = checkSlotConflict(slot.startMinutes, selectedDuration, occupiedSchedule);
       return {
         ...item,
@@ -151,7 +251,7 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
         occupiedTitle: occ.title,
       };
     });
-  }, [selectedDuration, occupiedSchedule]);
+  }, [selectedDuration, occupiedSchedule, startMinute]);
 
   const availableSlots = useMemo(() => {
     return allTimeSlots.filter((s) => !s.isOccupied);
@@ -168,7 +268,7 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
   }, [allTimeSlots, timeFilterPeriod]);
 
   // Pointer angle (0° is 12, 90° is 3, 180° is 6, 270° is 9)
-  const pointerAngle = (current12Hour % 12) * 30;
+  const pointerAngle = (active12Hour % 12) * 30;
 
   return (
     <View style={styles.container}>
@@ -234,6 +334,13 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
                 playSpinnerTickSound(850);
                 triggerHaptic();
                 onSelectDuration(opt.minutes);
+                const range = computeTimeRange(selectedStartHour, opt.minutes, startMinute);
+                const occ = checkSlotConflict(range.startMinutes, opt.minutes, occupiedSchedule);
+                onSelectSlot({
+                  startHour: selectedStartHour,
+                  rangeString: range.rangeString,
+                  isOccupied: occ.occupied,
+                });
               }}
               activeOpacity={0.8}
             >
@@ -248,27 +355,128 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
       {/* 3. RADIAL CLOCK DIAL VIEW */}
       {viewMode === 'radial' && (
         <View style={styles.radialCard}>
-          {/* AM / PM Segmented Capsule Switcher */}
-          <View style={styles.meridiemContainer}>
+          {/* Dual Target Switcher: Start Time vs End Time */}
+          <View style={styles.timeTargetSelector}>
             <TouchableOpacity
-              style={[styles.meridiemBtn, !isPm && styles.meridiemBtnActive]}
-              onPress={() => handleToggleMeridiem(false)}
+              style={[
+                styles.timeTargetCard,
+                activeTarget === 'start' && styles.timeTargetCardActive,
+              ]}
+              onPress={() => {
+                playSpinnerTickSound(850);
+                triggerHaptic();
+                setActiveTarget('start');
+              }}
               activeOpacity={0.8}
             >
-              <Text style={[styles.meridiemBtnText, !isPm && styles.meridiemBtnTextActive]}>
-                AM
+              <View style={styles.timeTargetHeader}>
+                <View style={[styles.targetIndicatorDot, { backgroundColor: '#34D399' }]} />
+                <Text
+                  style={[
+                    styles.timeTargetLabel,
+                    activeTarget === 'start' && styles.timeTargetLabelActive,
+                  ]}
+                >
+                  START TIME
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.timeTargetValue,
+                  activeTarget === 'start' && styles.timeTargetValueActive,
+                ]}
+              >
+                {format12hString(selectedStartHour, startMinute)}
+              </Text>
+              <Text style={styles.timeTargetSub}>
+                {activeTarget === 'start' ? '● On dial' : 'Tap to set'}
               </Text>
             </TouchableOpacity>
 
+            <View style={styles.timeTargetArrowContainer}>
+              <Ionicons name="arrow-forward" size={16} color="#8E8E9E" />
+            </View>
+
             <TouchableOpacity
-              style={[styles.meridiemBtn, isPm && styles.meridiemBtnActive]}
-              onPress={() => handleToggleMeridiem(true)}
+              style={[
+                styles.timeTargetCard,
+                activeTarget === 'end' && styles.timeTargetCardActive,
+              ]}
+              onPress={() => {
+                playSpinnerTickSound(850);
+                triggerHaptic();
+                setActiveTarget('end');
+              }}
               activeOpacity={0.8}
             >
-              <Text style={[styles.meridiemBtnText, isPm && styles.meridiemBtnTextActive]}>
-                PM
+              <View style={styles.timeTargetHeader}>
+                <View style={[styles.targetIndicatorDot, { backgroundColor: colors.primary }]} />
+                <Text
+                  style={[
+                    styles.timeTargetLabel,
+                    activeTarget === 'end' && styles.timeTargetLabelActive,
+                  ]}
+                >
+                  END TIME
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.timeTargetValue,
+                  activeTarget === 'end' && styles.timeTargetValueActive,
+                ]}
+              >
+                {format12hString(endHour24, endMinute)}
+              </Text>
+              <Text style={styles.timeTargetSub}>
+                {activeTarget === 'end' ? '● On dial' : 'Tap to set'}
               </Text>
             </TouchableOpacity>
+          </View>
+
+          {/* Controls Row: AM/PM Switcher + Minute Pills */}
+          <View style={styles.controlsRow}>
+            {/* AM / PM Segmented Capsule Switcher */}
+            <View style={styles.meridiemContainer}>
+              <TouchableOpacity
+                style={[styles.meridiemBtn, !activeIsPm && styles.meridiemBtnActive]}
+                onPress={() => handleToggleMeridiem(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.meridiemBtnText, !activeIsPm && styles.meridiemBtnTextActive]}>
+                  AM
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.meridiemBtn, activeIsPm && styles.meridiemBtnActive]}
+                onPress={() => handleToggleMeridiem(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.meridiemBtnText, activeIsPm && styles.meridiemBtnTextActive]}>
+                  PM
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Minute Selector Pills */}
+            <View style={styles.minutePillContainer}>
+              {[0, 15, 30, 45].map((m) => {
+                const isMinActive = activeMinute === m;
+                return (
+                  <TouchableOpacity
+                    key={`min_${m}`}
+                    style={[styles.minutePillBtn, isMinActive && styles.minutePillBtnActive]}
+                    onPress={() => handleSelectMinute(m)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.minutePillText, isMinActive && styles.minutePillTextActive]}>
+                      :{String(m).padStart(2, '0')}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
 
           {/* Interactive Clock Face Ring */}
@@ -288,28 +496,43 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
             {/* Glowing Center Hub Disc */}
             <View style={styles.clockCenterHub} pointerEvents="none">
               <Text style={styles.centerTimeText}>
-                {String(current12Hour).padStart(2, '0')}:00
+                {String(active12Hour).padStart(2, '0')}:{String(activeMinute).padStart(2, '0')}
               </Text>
               <View style={styles.centerMeridiemTag}>
                 <View
                   style={[
                     styles.centerStatusPip,
-                    { backgroundColor: currentSlotOccupied.occupied ? '#EF4444' : colors.success },
+                    {
+                      backgroundColor: currentSlotOccupied.occupied
+                        ? '#EF4444'
+                        : activeTarget === 'start'
+                        ? '#34D399'
+                        : colors.primary,
+                    },
                   ]}
                 />
-                <Text style={styles.centerMeridiemText}>{isPm ? 'PM' : 'AM'}</Text>
+                <Text
+                  style={[
+                    styles.centerMeridiemText,
+                    { color: activeTarget === 'start' ? '#34D399' : colors.primary },
+                  ]}
+                >
+                  {activeTarget === 'start' ? 'START' : 'END'} • {activeIsPm ? 'PM' : 'AM'}
+                </Text>
               </View>
             </View>
 
             {/* 12 Interactive Radial Hour Nodes */}
             {clockHours.map((h) => {
-              const isSelected = current12Hour === h;
+              const isSelected = active12Hour === h;
+              const isStartNode = start12Hour === h;
+              const isEndNode = end12Hour === h;
               const angle = ((h % 12) * 30 - 90) * (Math.PI / 180);
               const nodeLeft = CENTER + RADIUS * Math.cos(angle) - NODE_SIZE / 2;
               const nodeTop = CENTER + RADIUS * Math.sin(angle) - NODE_SIZE / 2;
 
               // Check if this hour is occupied
-              const h24 = to24Hour(h, isPm);
+              const h24 = to24Hour(h, activeIsPm);
               const nodeConflict = checkSlotConflict(h24 * 60, selectedDuration, occupiedSchedule);
               const isOccupied = nodeConflict.occupied;
 
@@ -320,6 +543,8 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
                     styles.clockNode,
                     { left: nodeLeft, top: nodeTop },
                     isSelected && styles.clockNodeSelected,
+                    !isSelected && activeTarget === 'end' && isStartNode && styles.clockNodeBoundary,
+                    !isSelected && activeTarget === 'start' && isEndNode && styles.clockNodeBoundary,
                     isOccupied && !isSelected && styles.clockNodeOccupied,
                   ]}
                   onPress={() => handleSelectClockHour(h)}
@@ -329,6 +554,7 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
                     style={[
                       styles.clockNodeText,
                       isSelected && styles.clockNodeTextSelected,
+                      !isSelected && (isStartNode || isEndNode) && styles.clockNodeTextBoundary,
                       isOccupied && !isSelected && styles.clockNodeTextOccupied,
                     ]}
                   >
@@ -341,6 +567,16 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
                         isSelected && { backgroundColor: '#7F1D1D' },
                       ]}
                     />
+                  )}
+                  {!isSelected && activeTarget === 'end' && isStartNode && (
+                    <View style={[styles.nodeTagMini, { backgroundColor: '#34D399' }]}>
+                      <Text style={styles.nodeTagMiniText}>START</Text>
+                    </View>
+                  )}
+                  {!isSelected && activeTarget === 'start' && isEndNode && (
+                    <View style={[styles.nodeTagMini, { backgroundColor: colors.primary }]}>
+                      <Text style={styles.nodeTagMiniText}>END</Text>
+                    </View>
                   )}
                 </TouchableOpacity>
               );
@@ -655,12 +891,113 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
   },
+  timeTargetSelector: {
+    ...commonStyles.row,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: spacing.md,
+    gap: spacing.xs,
+  },
+  timeTargetCard: {
+    ...commonStyles.flex1,
+    backgroundColor: 'rgba(26, 26, 38, 0.95)',
+    borderRadius: radius.card,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.sm,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+  },
+  timeTargetCardActive: {
+    backgroundColor: 'rgba(40, 30, 26, 0.96)',
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  timeTargetHeader: {
+    ...commonStyles.rowCenter,
+    marginBottom: 2,
+  },
+  targetIndicatorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 5,
+  },
+  timeTargetLabel: {
+    color: '#8E8E9E',
+    fontSize: 10,
+    fontWeight: fontWeights.bold,
+    letterSpacing: 0.5,
+  },
+  timeTargetLabelActive: {
+    color: colors.primary,
+  },
+  timeTargetValue: {
+    color: '#D4D4E0',
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.heavy,
+    letterSpacing: -0.3,
+  },
+  timeTargetValueActive: {
+    color: '#FFFFFF',
+  },
+  timeTargetSub: {
+    color: '#6E6E80',
+    fontSize: 9,
+    marginTop: 2,
+  },
+  timeTargetArrowContainer: {
+    paddingHorizontal: 2,
+    ...commonStyles.center,
+  },
+  controlsRow: {
+    ...commonStyles.row,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  minutePillContainer: {
+    ...commonStyles.row,
+    backgroundColor: 'rgba(26, 26, 38, 0.95)',
+    borderRadius: radius.full,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  minutePillBtn: {
+    paddingHorizontal: 7,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radius.full,
+  },
+  minutePillBtnActive: {
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  minutePillText: {
+    color: '#8E8E9E',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+  },
+  minutePillTextActive: {
+    color: '#151518',
+    fontWeight: fontWeights.heavy,
+  },
   meridiemContainer: {
     ...commonStyles.row,
     backgroundColor: 'rgba(26, 26, 38, 0.95)',
     borderRadius: radius.full,
     padding: 3,
-    marginBottom: spacing.lg,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
@@ -783,6 +1120,10 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(239, 68, 68, 0.4)',
     backgroundColor: 'rgba(239, 68, 68, 0.12)',
   },
+  clockNodeBoundary: {
+    borderColor: 'rgba(52, 211, 153, 0.6)',
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+  },
   clockNodeText: {
     color: '#D4D4E2',
     fontSize: fontSizes.xs,
@@ -790,6 +1131,10 @@ const styles = StyleSheet.create({
   },
   clockNodeTextSelected: {
     color: '#151518',
+    fontWeight: fontWeights.heavy,
+  },
+  clockNodeTextBoundary: {
+    color: '#34D399',
     fontWeight: fontWeights.heavy,
   },
   clockNodeTextOccupied: {
@@ -803,6 +1148,19 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 2.5,
     backgroundColor: '#EF4444',
+  },
+  nodeTagMini: {
+    position: 'absolute',
+    bottom: -5,
+    paddingHorizontal: 3,
+    paddingVertical: 1,
+    borderRadius: 3,
+    ...commonStyles.center,
+  },
+  nodeTagMiniText: {
+    fontSize: 7,
+    fontWeight: fontWeights.heavy,
+    color: '#151518',
   },
   slotRangeBanner: {
     ...commonStyles.rowCenter,
