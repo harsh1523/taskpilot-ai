@@ -6,10 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
-  ScrollView,
-  TextInput,
   StatusBar,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Category, Priority, Task } from '../types/task';
@@ -39,20 +36,6 @@ interface VoiceTaskModalProps {
 
 type TechnaStep = 'task' | 'time' | 'priority' | 'done';
 
-const sampleTaskPrompts = [
-  'Prepare marketing launch budget',
-  'Weekly design sync with team',
-  'Doctor annual checkup',
-  'Review mobile app wireframes',
-];
-
-const sampleTimePrompts = [
-  'Tomorrow at 10 AM',
-  'Friday at 6 PM',
-  'Tomorrow at 2 PM',
-  'Today at 7 PM',
-];
-
 export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
   visible,
   onClose,
@@ -63,7 +46,6 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
   const [currentStep, setCurrentStep] = useState<TechnaStep>('task');
   const [isListening, setIsListening] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState('');
-  const [voiceInputText, setVoiceInputText] = useState('');
 
   // Step Values & Done Flags
   const [taskTitle, setTaskTitle] = useState('');
@@ -100,7 +82,6 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
       setConflictingInfo(null);
       setSelectedPriority('high');
       setLiveTranscript('');
-      setVoiceInputText('');
 
       startSpeechRecognition();
     } else {
@@ -121,7 +102,6 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
       },
       onTranscript: (transcript: string, isFinal: boolean) => {
         setLiveTranscript(transcript);
-        setVoiceInputText(transcript);
         if (isFinal) {
           handleSpokenInput(transcript);
         }
@@ -173,7 +153,6 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
       setSelectedPriority(priority);
       setCurrentStep('done');
       setLiveTranscript('');
-      setVoiceInputText('');
 
       playSpinnerTickSound(1200);
       speakWithTechna(`Scheduled ${title} for ${dateLabel} at ${timeRange}.`);
@@ -216,7 +195,6 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
     playSpinnerTickSound(1000);
     setTaskTitle(name);
     setLiveTranscript('');
-    setVoiceInputText('');
     stopSpeechRecognition();
 
     speakWithTechna('When should I schedule this?');
@@ -293,7 +271,6 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
     setSelectedTimeRange(slotStr);
     setOccupiedWarning(null);
     setLiveTranscript('');
-    setVoiceInputText('');
     stopSpeechRecognition();
 
     speakWithTechna(`Scheduled for ${dateStr} at ${slotStr}. What priority?`);
@@ -309,7 +286,6 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
     playSpinnerTickSound(1100);
     setSelectedPriority(p);
     setLiveTranscript('');
-    setVoiceInputText('');
     stopSpeechRecognition();
 
     speakWithTechna(`Saving ${p} priority task.`);
@@ -352,10 +328,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
       onRequestClose={onClose}
     >
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <KeyboardAvoidingView
-        style={styles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <View style={styles.overlay}>
         {/* Techna Siri Edge Display Border Glow */}
         <TechnaDisplayBorderGlow active={isListening} />
 
@@ -465,136 +438,8 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
               )}
             </View>
           )}
-
-          {/* 4. Contextual Apple Siri Suggestion Chips */}
-          <View style={styles.suggestionsContainer}>
-            {currentStep === 'task' && !taskTitle && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.suggestionsScroll}
-              >
-                {sampleTaskPrompts.map((sample) => (
-                  <TouchableOpacity
-                    key={sample}
-                    style={styles.suggestionPill}
-                    onPress={() => handleTaskNameAdded(sample)}
-                    activeOpacity={0.75}
-                  >
-                    <Ionicons name="sparkles" size={12} color="#38BDF8" style={{ marginRight: 5 }} />
-                    <Text style={styles.suggestionPillText}>&ldquo;{sample}&rdquo;</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-
-            {currentStep === 'time' && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.suggestionsScroll}
-              >
-                {sampleTimePrompts.map((tSample) => (
-                  <TouchableOpacity
-                    key={tSample}
-                    style={styles.suggestionPill}
-                    onPress={() => handleTimeSpoken(tSample)}
-                    activeOpacity={0.75}
-                  >
-                    <Ionicons name="time-outline" size={12} color="#EC4899" style={{ marginRight: 5 }} />
-                    <Text style={styles.suggestionPillText}>{tSample}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-
-            {currentStep === 'priority' && (
-              <View style={styles.priorityPillRow}>
-                {(['urgent', 'high', 'medium', 'low'] as Priority[]).map((prio) => (
-                  <TouchableOpacity
-                    key={prio}
-                    style={[
-                      styles.priorityPill,
-                      selectedPriority === prio && styles.priorityPillActive,
-                    ]}
-                    onPress={() => handlePrioritySelected(prio)}
-                    activeOpacity={0.75}
-                  >
-                    <Text
-                      style={[
-                        styles.priorityPillText,
-                        selectedPriority === prio && styles.priorityPillTextActive,
-                      ]}
-                    >
-                      {prio.toUpperCase()}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* 5. Minimalist Apple Siri Search & Dictation Capsule */}
-          <View style={[styles.siriInputCapsule, isListening && styles.siriInputCapsuleActive]}>
-            <TouchableOpacity
-              onPress={() => {
-                playSpinnerTickSound(isListening ? 700 : 1000);
-                if (isListening) stopSpeechRecognition();
-                else startSpeechRecognition();
-              }}
-              activeOpacity={0.7}
-              style={styles.siriInputMic}
-            >
-              <Ionicons
-                name={isListening ? 'mic' : 'mic-outline'}
-                size={19}
-                color={isListening ? '#38BDF8' : '#8E8E9E'}
-              />
-            </TouchableOpacity>
-
-            <TextInput
-              style={styles.siriTextInput}
-              value={voiceInputText}
-              onChangeText={(text) => {
-                setVoiceInputText(text);
-                setLiveTranscript(text);
-              }}
-              placeholder={
-                currentStep === 'task'
-                  ? 'Speak or type a task...'
-                  : currentStep === 'time'
-                  ? 'Speak date or time...'
-                  : 'Speak priority (Urgent, High, Medium)...'
-              }
-              placeholderTextColor="#686878"
-              returnKeyType="send"
-              onSubmitEditing={() => {
-                if (voiceInputText.trim()) {
-                  handleSpokenInput(voiceInputText.trim());
-                }
-              }}
-            />
-
-            {voiceInputText.trim().length > 0 && (
-              <TouchableOpacity
-                style={styles.siriSendBtn}
-                onPress={() => handleSpokenInput(voiceInputText.trim())}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="arrow-up" size={15} color="#FFFFFF" />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Subtle Siri Footnote */}
-          <View style={styles.footnoteRow}>
-            <Ionicons name="sparkles-outline" size={11} color="#6E6E82" style={{ marginRight: 4 }} />
-            <Text style={styles.footnoteText}>
-              Powered by Techna AI • Speaks and understands naturally
-            </Text>
-          </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 };
@@ -610,7 +455,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingTop: 18,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+    paddingBottom: Platform.OS === 'ios' ? 44 : 32,
     paddingHorizontal: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.09)',
@@ -684,7 +529,7 @@ const styles = StyleSheet.create({
   orbWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 10,
+    marginVertical: 14,
   },
 
   // 3. Dynamic Siri Headline / Transcript
@@ -693,7 +538,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 12,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   centerStatusGroup: {
     alignItems: 'center',
@@ -761,7 +606,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(239, 68, 68, 0.3)',
     borderRadius: 14,
     padding: 12,
-    marginBottom: 12,
+    marginTop: 8,
   },
   conflictHeader: {
     flexDirection: 'row',
@@ -787,114 +632,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
-  },
-
-  // 4. Contextual Siri Suggestions
-  suggestionsContainer: {
-    marginBottom: 14,
-    minHeight: 38,
-    justifyContent: 'center',
-  },
-  suggestionsScroll: {
-    gap: 8,
-    paddingHorizontal: 2,
-    alignItems: 'center',
-  },
-  suggestionPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  suggestionPillText: {
-    color: '#D0D0DC',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  priorityPillRow: {
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'center',
-  },
-  priorityPill: {
-    flex: 1,
-    paddingVertical: 9,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.07)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  priorityPillActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  priorityPillText: {
-    color: '#8E8E9E',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  priorityPillTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-
-  // 5. Minimalist Apple Siri Input Capsule
-  siriInputCapsule: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(32, 32, 44, 0.85)',
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginBottom: 10,
-  },
-  siriInputCapsuleActive: {
-    borderColor: '#38BDF8',
-    backgroundColor: 'rgba(38, 38, 54, 0.95)',
-    shadowColor: '#38BDF8',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  siriInputMic: {
-    padding: 4,
-    marginRight: 8,
-  },
-  siriTextInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#FFFFFF',
-    fontWeight: '500',
-  },
-  siriSendBtn: {
-    backgroundColor: colors.primary,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 6,
-  },
-
-  // Subtle Footnote
-  footnoteRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 2,
-  },
-  footnoteText: {
-    color: '#6E6E82',
-    fontSize: 11,
-    fontWeight: '500',
   },
 });
