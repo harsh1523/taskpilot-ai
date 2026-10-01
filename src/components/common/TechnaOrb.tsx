@@ -216,7 +216,7 @@ export const TechnaOrb: React.FC<TechnaOrbProps> = ({
   // VARIANT: FACE (Floating Button Next to Create Task)
   // ==========================================
   if (variant === 'face') {
-    const headWidth = size * 0.94;
+    const headWidth = size * 1.06;
     const headHeight = headWidth * 0.75; // aspect ratio 260x195
 
     return (
@@ -229,23 +229,9 @@ export const TechnaOrb: React.FC<TechnaOrbProps> = ({
           {
             width: size,
             height: size,
-            borderRadius: size / 2,
           },
         ]}
       >
-        {/* Soft Ambient Radial Violet Glow Behind Head */}
-        <View
-          style={[
-            styles.faceGlowHalo,
-            {
-              width: size * 1.15,
-              height: size * 1.15,
-              borderRadius: (size * 1.15) / 2,
-            },
-          ]}
-          pointerEvents="none"
-        />
-
         {/* Floating Head with Animated Blinking Eyes */}
         <Animated.View
           style={[
@@ -296,14 +282,14 @@ export const TechnaOrb: React.FC<TechnaOrbProps> = ({
 
                 {/* Left Glowing Eye Arch (Arch when open, flattens to sleek eyelid line when blinking) */}
                 <Path
-                  d="M 68,84 C 73,69 86,69 96,84"
+                  d="M 79,84 C 84,69 97,69 107,84"
                   stroke="url(#eyeGlowGrad)"
                   strokeWidth="8"
                   strokeLinecap="round"
                   fill="none"
                 />
                 <Path
-                  d="M 68,84 C 73,69 86,69 96,84"
+                  d="M 79,84 C 84,69 97,69 107,84"
                   stroke="#FFFFFF"
                   strokeWidth="3.5"
                   strokeLinecap="round"
@@ -312,14 +298,14 @@ export const TechnaOrb: React.FC<TechnaOrbProps> = ({
 
                 {/* Right Glowing Eye Arch */}
                 <Path
-                  d="M 141,84 C 151,69 164,69 169,84"
+                  d="M 152,84 C 162,69 175,69 180,84"
                   stroke="url(#eyeGlowGrad)"
                   strokeWidth="8"
                   strokeLinecap="round"
                   fill="none"
                 />
                 <Path
-                  d="M 141,84 C 151,69 164,69 169,84"
+                  d="M 152,84 C 162,69 175,69 180,84"
                   stroke="#FFFFFF"
                   strokeWidth="3.5"
                   strokeLinecap="round"
@@ -507,25 +493,12 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
 
-  // Face Button Variant Styles
+  // Face Button Variant Styles (Clean Floating Character Face without enclosing circle)
   faceButtonContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(26, 18, 42, 0.92)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(192, 132, 252, 0.42)',
-    shadowColor: '#C084FC',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.55,
-    shadowRadius: 14,
-    elevation: 8,
     position: 'relative',
     overflow: 'visible',
-  },
-  faceGlowHalo: {
-    position: 'absolute',
-    backgroundColor: 'rgba(168, 85, 247, 0.15)',
-    zIndex: 0,
   },
   faceWrapper: {
     alignItems: 'center',
