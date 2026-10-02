@@ -116,10 +116,22 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     })
   ).current;
 
+  const swipeBgOpacity = translateX.interpolate({
+    inputRange: [-78, -15, 0],
+    outputRange: [1, 0.4, 0],
+    extrapolate: 'clamp',
+  });
+
+  const inlineDeleteOpacity = translateX.interpolate({
+    inputRange: [-35, 0],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
   return (
     <View style={styles.swipeContainer}>
-      {/* Background Delete Action revealed on swipe left */}
-      <View style={styles.swipeBackground}>
+      {/* Background Delete Action revealed only on swipe left */}
+      <Animated.View style={[styles.swipeBackground, { opacity: swipeBgOpacity }]}>
         <TouchableOpacity
           style={styles.swipeDeleteAction}
           onPress={triggerDelete}
@@ -128,7 +140,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           <Ionicons name="trash" size={20} color="#FFFFFF" />
           <Text style={styles.swipeDeleteText}>Delete</Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {/* Main Foreground Card with Pan Handlers */}
       <Animated.View
@@ -231,15 +243,17 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             </View>
           </View>
 
-          {/* Delete Action button (triggers Mac trash sound too) */}
-          <TouchableOpacity
-            onPress={triggerDelete}
-            style={styles.deleteBtn}
-            activeOpacity={0.6}
-            accessibilityLabel="Delete task"
-          >
-            <Ionicons name="trash-outline" size={16} color="#6E6E82" />
-          </TouchableOpacity>
+          {/* Delete Action button (fades out as swipe opens to prevent double exposure) */}
+          <Animated.View style={{ opacity: inlineDeleteOpacity }}>
+            <TouchableOpacity
+              onPress={triggerDelete}
+              style={styles.deleteBtn}
+              activeOpacity={0.6}
+              accessibilityLabel="Delete task"
+            >
+              <Ionicons name="trash-outline" size={16} color="#6E6E82" />
+            </TouchableOpacity>
+          </Animated.View>
         </View>
       </Animated.View>
     </View>
@@ -274,7 +288,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   card: {
-    backgroundColor: 'rgba(16, 16, 24, 0.88)',
+    backgroundColor: '#12121A',
     borderRadius: 22,
     padding: spacing.lg + 2,
     borderWidth: 1,
@@ -286,9 +300,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cardCompleted: {
-    backgroundColor: 'rgba(12, 12, 18, 0.65)',
+    backgroundColor: '#0E0E16',
     borderColor: 'rgba(255, 255, 255, 0.04)',
-    opacity: 0.6,
+    opacity: 0.65,
   },
   contentRow: {
     flexDirection: 'row',
