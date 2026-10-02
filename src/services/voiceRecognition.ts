@@ -214,21 +214,37 @@ class VoiceRecognitionService {
                 errCode === 6; // ERROR_SPEECH_TIMEOUT
 
               if (isSilenceTimeout) {
-                // If listening is still active, seamlessly keep listening
+                // If listening is still active, restart gracefully for silence pause
                 if (this.isListeningActive) {
                   this.scheduleNativeRestart(nativeMod);
                 }
                 return;
               }
 
+              // Fatal or configuration error: immediately cancel active listening and abort loop
+              this.isListeningActive = false;
+              if (this.restartTimer) {
+                clearTimeout(this.restartTimer);
+                this.restartTimer = null;
+              }
+
+              const rawMsg = event.message || event.error || '';
+              const isInitOrAudioError =
+                rawMsg.includes('initialize') ||
+                rawMsg.includes('audio-capture') ||
+                rawMsg.includes('kLSRErrorDomain');
+
+              const friendlyMsg = isInitOrAudioError
+                ? 'Speech recognition could not initialize (common on iOS Simulator or if Dictation is disabled in Settings). Please test on a physical device, or use keyboard dictation 🎙️ / text input.'
+                : `Speech recognition: ${rawMsg}`;
+
               console.warn('Native speech recognition event error:', event);
-              handlers.onError?.(`Speech recognition: ${event.message || errCode}`);
+              handlers.onError?.(friendlyMsg);
+              handlers.onEnd?.();
             }),
             nativeMod.addListener('end', () => {
-              // If user did not manually stop listening, keep session active
-              if (this.isListeningActive) {
-                this.scheduleNativeRestart(nativeMod);
-              } else {
+              // End event fired: only notify if listening is no longer active
+              if (!this.isListeningActive) {
                 handlers.onEnd?.();
               }
             })
@@ -358,44 +374,13 @@ class VoiceRecognitionService {
         interimResults: true,
         continuous: true,
         addsPunctuation: true,
-        iosVoiceProcessingEnabled: true,
         iosTaskHint: 'dictation',
-        iosCategory: {
-          category: 'playAndRecord',
-          categoryOptions: ['defaultToSpeaker', 'allowBluetooth'],
-          mode: 'measurement',
-        },
         androidIntentOptions: {
           EXTRA_LANGUAGE_MODEL: 'free_form',
           EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 3000,
           EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 2500,
           EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 2500,
         },
-        contextualStrings: [
-          'TaskPilot',
-          'Techna',
-          'task',
-          'meeting',
-          'project',
-          'priority',
-          'urgent',
-          'today',
-          'tomorrow',
-          'morning',
-          'afternoon',
-          'evening',
-          'gym',
-          'call',
-          'doctor',
-          'review',
-          'design',
-          'development',
-          'schedule',
-          'shift',
-          'high',
-          'medium',
-          'low',
-        ],
       });
     } catch (e) {
       console.warn('Error starting native speech recognition:', e);
