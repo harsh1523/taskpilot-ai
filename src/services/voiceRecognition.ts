@@ -235,7 +235,7 @@ class VoiceRecognitionService {
                 rawMsg.includes('kLSRErrorDomain');
 
               const friendlyMsg = isInitOrAudioError
-                ? 'Speech recognition could not initialize (common on iOS Simulator or if Dictation is disabled in Settings). Please test on a physical device, or use keyboard dictation 🎙️ / text input.'
+                ? 'Speech recognition cannot initialize on iOS Simulator (Apple kLSRErrorDomain 300). Use the Voice Demo below, or test live mic in Web (http://localhost:8081) / physical device.'
                 : `Speech recognition: ${rawMsg}`;
 
               console.warn('Native speech recognition event error:', event);

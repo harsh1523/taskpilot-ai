@@ -204,7 +204,22 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
       onError: (err: string) => {
         setAutoFillNotice(err);
         setIsListening(false);
-        if (err.includes('permission') || err.includes('Development Build')) {
+        if (err.includes('Simulator') || err.includes('initialize') || err.includes('audio-capture')) {
+          robotAlert(
+            'Simulator Audio Limitation',
+            'Apple restricts native speech recognition on iOS Simulators (Apple error 300).\n\nWould you like to run a Voice Demo to see auto-fill in action, or test live mic on Web (http://localhost:8081)?',
+            [
+              {
+                text: 'Try Voice Demo',
+                onPress: () => {
+                  runVoiceSimulationDemo();
+                },
+              },
+              { text: 'Type Manually' },
+            ],
+            { type: 'info' }
+          );
+        } else if (err.includes('permission') || err.includes('Development Build')) {
           robotAlert('Voice Recognition', err, [{ text: 'OK' }], { type: 'info' });
         }
       },
@@ -221,6 +236,30 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
         robotAlert('Voice Recognition', env.message, [{ text: 'OK' }], { type: 'info' });
       }
     }
+  };
+
+  const runVoiceSimulationDemo = (phrase: string = 'Team review meeting tomorrow at 3 PM high priority') => {
+    setIsListening(true);
+    setLiveTranscript('');
+    setAutoFillNotice('Simulating voice input...');
+    const words = phrase.split(' ');
+    let current = '';
+
+    words.forEach((word, index) => {
+      setTimeout(() => {
+        current = current ? `${current} ${word}` : word;
+        setLiveTranscript(current);
+        playSpinnerTickSound(900 + index * 30);
+
+        if (index === words.length - 1) {
+          setTimeout(() => {
+            setIsListening(false);
+            applyVoiceAutoFill(phrase);
+            setAutoFillNotice('✨ Auto-filled from voice input demo!');
+          }, 450);
+        }
+      }, (index + 1) * 200);
+    });
   };
 
   const stopSpeechRecognition = () => {

@@ -20,6 +20,7 @@ import { Category, Priority, Task } from '../types/task';
 import { colors, useTheme } from '../theme';
 import { playSpinnerTickSound, speakWithTechna } from '../services/soundEffects';
 import { extractSpokenDueDate, parseVoiceToTaskForm, parseSpokenPriority } from '../services/voiceParser';
+import { robotAlert } from '../services/robotAlert';
 import { TechnaDisplayBorderGlow } from './TechnaDisplayBorderGlow';
 import { voiceRecognition } from '../services/voiceRecognition';
 import { TechnaOrb, RobotFaceMode } from './common/TechnaOrb';
@@ -161,6 +162,12 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
   const [selectedPriority, setSelectedPriority] = useState<Priority>('high');
   const [manualInputText, setManualInputText] = useState('');
   const [voiceNotice, setVoiceNotice] = useState('');
+  const simulationTimers = useRef<any[]>([]);
+
+  const clearSimulationTimers = () => {
+    simulationTimers.current.forEach((t) => clearTimeout(t));
+    simulationTimers.current = [];
+  };
 
   // Occupied blocks and conflict checking powered by scheduleUtils
   const defaultOccupiedSchedule = useMemo(() => {
@@ -173,6 +180,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
 
   // Smooth Close Sequence
   const handleModalClose = () => {
+    clearSimulationTimers();
     stopSpeechRecognition();
     setRobotFaceMode('idle');
     Animated.parallel([
@@ -336,6 +344,40 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
   const stopSpeechRecognition = () => {
     voiceRecognition.stop();
     setIsListening(false);
+  };
+
+  // Interactive Voice Simulator (for Simulators or demonstration without native hardware mic)
+  const simulateVoiceInput = (phrase: string = 'Doctor appointment tomorrow at 10 AM high priority') => {
+    clearSimulationTimers();
+    stopSpeechRecognition();
+    setIsListening(true);
+    setRobotFaceMode('waves');
+    setLiveTranscript('');
+    setVoiceNotice('');
+
+    speakWithTechna('Listening to voice input.');
+
+    const words = phrase.split(' ');
+    let current = '';
+
+    words.forEach((word, index) => {
+      const timer = setTimeout(() => {
+        current = current ? `${current} ${word}` : word;
+        setLiveTranscript(current);
+        playSpinnerTickSound(900 + index * 30);
+
+        if (index === words.length - 1) {
+          const finishTimer = setTimeout(() => {
+            setIsListening(false);
+            setRobotFaceMode('done');
+            handleSpokenInput(phrase);
+          }, 450);
+          simulationTimers.current.push(finishTimer);
+        }
+      }, (index + 1) * 200);
+
+      simulationTimers.current.push(timer);
+    });
   };
 
   // Smart Voice Input Processor (Handles both full sentences and step-by-step)
@@ -660,13 +702,42 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
           {/* Equalizer Audio Waveform Visualizer */}
           <VoiceWaveform isListening={isListening} color={theme.primaryLight || '#38BDF8'} />
 
-          {/* Voice Notice / Permission Info Pill */}
+          {/* Voice Notice / Simulator Assistant Banner */}
           {!!voiceNotice && !isListening && (
-            <View style={styles.noticePill}>
-              <Ionicons name="information-circle" size={14} color="#FBBF24" style={{ marginRight: 6 }} />
-              <Text style={styles.noticePillText} numberOfLines={2}>
+            <View style={styles.noticeCard}>
+              <View style={styles.noticeCardHeader}>
+                <Ionicons name="hardware-chip-outline" size={14} color="#38BDF8" style={{ marginRight: 6 }} />
+                <Text style={styles.noticeCardTitle}>iOS Simulator Voice Notice</Text>
+              </View>
+              <Text style={styles.noticeCardBody} numberOfLines={2}>
                 {voiceNotice}
               </Text>
+              <View style={styles.noticeCardActions}>
+                <TouchableOpacity
+                  style={[styles.noticeActionBtn, { backgroundColor: theme.primary }]}
+                  onPress={() => simulateVoiceInput('Doctor appointment tomorrow at 10 AM high priority')}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="sparkles" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.noticeActionBtnText}>Try Voice Demo</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.noticeActionSecondaryBtn}
+                  onPress={() => {
+                    robotAlert(
+                      'Live Microphone Testing',
+                      'To test real live microphone recognition with your Mac microphone:\n\n1. Press "w" in your Expo terminal or open http://localhost:8081 in Chrome/Safari.\n2. Tap the Techna microphone to speak freely!\n\nOr test on a physical iPhone/Android device with Expo Go.',
+                      [{ text: 'Got It' }],
+                      { type: 'info' }
+                    );
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="globe-outline" size={13} color="#93C5FD" style={{ marginRight: 4 }} />
+                  <Text style={styles.noticeActionSecondaryText}>Live Mic on Web</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -792,10 +863,11 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
                         style={styles.suggestionChip}
                         onPress={() => {
                           playSpinnerTickSound(900);
-                          handleSpokenInput(chip);
+                          simulateVoiceInput(chip);
                         }}
                         activeOpacity={0.75}
                       >
+                        <Ionicons name="sparkles-outline" size={11} color="#38BDF8" style={{ marginRight: 4 }} />
                         <Text style={styles.suggestionChipText}>{chip}</Text>
                       </TouchableOpacity>
                     ))}
@@ -1087,6 +1159,66 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
     flexShrink: 1,
+  },
+  noticeCard: {
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    borderColor: 'rgba(56, 189, 248, 0.28)',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  noticeCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 3,
+  },
+  noticeCardTitle: {
+    color: '#7DD3FC',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  noticeCardBody: {
+    color: 'rgba(255, 255, 255, 0.72)',
+    fontSize: 11,
+    textAlign: 'center',
+    marginBottom: 8,
+    lineHeight: 15,
+  },
+  noticeCardActions: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  noticeActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5.5,
+    paddingHorizontal: 11,
+    borderRadius: 12,
+  },
+  noticeActionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  noticeActionSecondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+    paddingVertical: 5.5,
+    paddingHorizontal: 11,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+  },
+  noticeActionSecondaryText: {
+    color: '#93C5FD',
+    fontSize: 11,
+    fontWeight: '600',
   },
   quickInputSection: {
     width: '100%',
