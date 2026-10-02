@@ -1,19 +1,22 @@
 {
   "expo": {
-    "name": "taskpilot-ai",
+    "name": "TaskPilot AI",
     "slug": "taskpilot-ai",
+    "scheme": "taskpilot-ai",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.harsh.taskpilotai",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Allow Techna to listen to your voice to create tasks.",
         "NSSpeechRecognitionUsageDescription": "Allow Techna to recognize your speech to create tasks."
       }
     },
     "android": {
+      "package": "com.harsh.taskpilotai",
       "adaptiveIcon": {
         "backgroundColor": "#0D1127",
         "foregroundImage": "./assets/android-icon-foreground.png",
