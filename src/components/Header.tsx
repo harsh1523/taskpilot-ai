@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, padding, radius, fontSizes, fontWeights, commonStyles, useTheme } from '../theme';
 import { playSpinnerTickSound } from '../services/soundEffects';
 import { formatDateLabel } from '../utils/scheduleUtils';
+import { TaskPilotBrand } from './common/TaskPilotBrand';
 
 interface HeaderProps {
   totalCount: number;
@@ -75,9 +76,14 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Main App Title */}
       <View style={styles.titleRow}>
         <View style={styles.titleAuraContainer}>
-          <Text style={styles.title}>
-            Smart <Text style={styles.boldTitle}>Tasks</Text>
-          </Text>
+          <View style={styles.brandTitleGroup}>
+            <TaskPilotBrand variant="icon" size={38} showGlow animated />
+            <View style={{ marginLeft: 10 }}>
+              <Text style={styles.title}>
+                TaskPilot <Text style={[styles.boldTitle, { color: theme.primaryLight }]}>AI</Text>
+              </Text>
+            </View>
+          </View>
           <TouchableOpacity
             style={[styles.genUiBadge, { borderColor: `${theme.primary}50`, backgroundColor: theme.primaryMuted }]}
             onPress={() => {
@@ -205,6 +211,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  brandTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   title: {
     fontSize: fontSizes.headline,

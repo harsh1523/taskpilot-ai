@@ -111,13 +111,9 @@ export const DateCapsulePicker: React.FC<DateCapsulePickerProps> = ({
 
           return (
             <View key={item.id} style={styles.capsuleWrapper}>
-              {/* Concentric aura glow for selected date capsule */}
+              {/* Subtle tight aura for selected date capsule */}
               {isSelected && (
-                <>
-                  <View style={[styles.pillAuraOuter, { backgroundColor: theme.primaryMuted }]} pointerEvents="none" />
-                  <View style={[styles.pillAuraMid, { backgroundColor: theme.primaryMuted }]} pointerEvents="none" />
-                  <View style={[styles.pillAuraInner, { backgroundColor: theme.primaryGlow }]} pointerEvents="none" />
-                </>
+                <View style={[styles.pillAuraTight, { backgroundColor: theme.primaryMuted }]} pointerEvents="none" />
               )}
               <TouchableOpacity
                 style={[
@@ -199,44 +195,23 @@ const styles = StyleSheet.create({
   },
   capsuleSelected: {
     backgroundColor: colors.primary,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.32)',
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5,
-    shadowRadius: 14,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.22,
+    shadowRadius: 5,
+    elevation: 3,
   },
-  // Pure geometric pill aura layers in electric violet
-  pillAuraInner: {
+  pillAuraTight: {
     position: 'absolute',
-    top: -2.5,
-    bottom: -2.5,
-    left: -2.5,
-    right: -2.5,
-    borderRadius: 29.5,
-    backgroundColor: 'rgba(139, 92, 246, 0.35)',
+    top: -1.5,
+    bottom: -1.5,
+    left: -1.5,
+    right: -1.5,
+    borderRadius: 28.5,
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
     zIndex: 1,
-  },
-  pillAuraMid: {
-    position: 'absolute',
-    top: -6,
-    bottom: -6,
-    left: -6,
-    right: -6,
-    borderRadius: 33,
-    backgroundColor: 'rgba(139, 92, 246, 0.18)',
-    zIndex: 0,
-  },
-  pillAuraOuter: {
-    position: 'absolute',
-    top: -10,
-    bottom: -10,
-    left: -10,
-    right: -10,
-    borderRadius: 37,
-    backgroundColor: 'rgba(139, 92, 246, 0.08)',
-    zIndex: -1,
   },
   selectedIndicatorDot: {
     width: 4,

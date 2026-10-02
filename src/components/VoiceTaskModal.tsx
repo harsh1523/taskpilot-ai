@@ -1,13 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Modal,
   View,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   StyleSheet,
   Platform,
   StatusBar,
   Dimensions,
+  Animated,
+  Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -18,7 +21,7 @@ import { playSpinnerTickSound, speakWithTechna } from '../services/soundEffects'
 import { extractSpokenDueDate, parseVoiceToTaskForm, parseSpokenPriority } from '../services/voiceParser';
 import { TechnaDisplayBorderGlow } from './TechnaDisplayBorderGlow';
 import { voiceRecognition } from '../services/voiceRecognition';
-import { TechnaOrb } from './common/TechnaOrb';
+import { TechnaOrb, RobotFaceMode } from './common/TechnaOrb';
 import { CircleIconButton } from './common/CircleIconButton';
 import {
   getOccupiedSchedule,
@@ -28,6 +31,86 @@ import {
   findNextAvailableSlot,
   AvailableSlot,
 } from '../utils/scheduleUtils';
+
+const { height: screenHeight } = Dimensions.get('window');
+
+/**
+ * 7-Bar Organic Audio Waveform Visualizer
+ * Reacts with continuous GPU-accelerated harmonic scaling when listening
+ */
+const VoiceWaveform: React.FC<{ isListening: boolean; color: string }> = ({ isListening, color }) => {
+  const bars = useRef([0, 1, 2, 3, 4, 5, 6].map(() => new Animated.Value(0.18))).current;
+
+  useEffect(() => {
+    if (!isListening) {
+      Animated.parallel(
+        bars.map((b) =>
+          Animated.timing(b, {
+            toValue: 0.18,
+            duration: 250,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          })
+        )
+      ).start();
+      return;
+    }
+
+    const configs = [
+      { min: 0.2, max: 0.65, dur: 420 },
+      { min: 0.22, max: 0.85, dur: 360 },
+      { min: 0.25, max: 1.15, dur: 300 },
+      { min: 0.3, max: 1.35, dur: 260 },
+      { min: 0.25, max: 1.1, dur: 310 },
+      { min: 0.22, max: 0.8, dur: 370 },
+      { min: 0.2, max: 0.6, dur: 440 },
+    ];
+
+    const loops = bars.map((b, i) => {
+      const c = configs[i];
+      return Animated.loop(
+        Animated.sequence([
+          Animated.timing(b, {
+            toValue: c.max,
+            duration: c.dur,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(b, {
+            toValue: c.min,
+            duration: c.dur,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+    });
+
+    loops.forEach((l) => l.start());
+    return () => loops.forEach((l) => l.stop());
+  }, [isListening]);
+
+  return (
+    <View style={styles.waveformContainer}>
+      {bars.map((barAnim, idx) => (
+        <Animated.View
+          key={idx}
+          style={[
+            styles.waveformBar,
+            {
+              backgroundColor: color,
+              transform: [{ scaleY: barAnim }],
+              opacity: isListening ? 0.95 : 0.22,
+              shadowColor: color,
+              shadowOpacity: isListening ? 0.8 : 0,
+              shadowRadius: 6,
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+};
 
 interface VoiceTaskModalProps {
   visible: boolean;
@@ -47,9 +130,19 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
   onShiftTask,
 }) => {
   const { theme } = useTheme();
+  const [modalRendered, setModalRendered] = useState(visible);
   const [currentStep, setCurrentStep] = useState<TechnaStep>('task');
   const [isListening, setIsListening] = useState(false);
+  const [robotFaceMode, setRobotFaceMode] = useState<RobotFaceMode>('waves');
   const [liveTranscript, setLiveTranscript] = useState('');
+
+  // Smooth Motion Values
+  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const sheetAnim = useRef(new Animated.Value(screenHeight)).current;
+  const dotPulseAnim = useRef(new Animated.Value(1)).current;
+  const contentFadeAnim = useRef(new Animated.Value(1)).current;
+  const contentTranslateAnim = useRef(new Animated.Value(0)).current;
+  const donePopAnim = useRef(new Animated.Value(0)).current;
 
   // Step Values & Done Flags
   const [taskTitle, setTaskTitle] = useState('');
@@ -75,9 +168,33 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
     return checkSlotConflict(startMin, durationMin, defaultOccupiedSchedule);
   };
 
-  // Reset and auto-start listening on open
+  // Smooth Close Sequence
+  const handleModalClose = () => {
+    stopSpeechRecognition();
+    setRobotFaceMode('idle');
+    Animated.parallel([
+      Animated.timing(backdropAnim, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(sheetAnim, {
+        toValue: screenHeight * 0.85,
+        duration: 240,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setModalRendered(false);
+      onClose();
+    });
+  };
+
+  // Reset and auto-start listening on open with spring entrance
   useEffect(() => {
     if (visible) {
+      setModalRendered(true);
       setCurrentStep('task');
       setTaskTitle('');
       setSelectedDate('Tomorrow');
@@ -86,23 +203,104 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
       setConflictingInfo(null);
       setSelectedPriority('high');
       setLiveTranscript('');
+      setRobotFaceMode('waves');
+
+      backdropAnim.setValue(0);
+      sheetAnim.setValue(screenHeight * 0.85);
+
+      Animated.parallel([
+        Animated.timing(backdropAnim, {
+          toValue: 1,
+          duration: 280,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.spring(sheetAnim, {
+          toValue: 0,
+          damping: 24,
+          mass: 0.85,
+          stiffness: 220,
+          useNativeDriver: true,
+        }),
+      ]).start();
 
       startSpeechRecognition();
-    } else {
-      stopSpeechRecognition();
+    } else if (modalRendered) {
+      handleModalClose();
     }
     return () => {
       stopSpeechRecognition();
     };
   }, [visible]);
 
+  // Dot pulsating breathing animation when active
+  useEffect(() => {
+    if (isListening) {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(dotPulseAnim, {
+            toValue: 1.45,
+            duration: 650,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(dotPulseAnim, {
+            toValue: 1,
+            duration: 650,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      loop.start();
+      return () => loop.stop();
+    } else {
+      dotPulseAnim.setValue(1);
+    }
+  }, [isListening]);
+
+  // Smooth text morph when step or speech changes
+  useEffect(() => {
+    contentFadeAnim.setValue(0.35);
+    contentTranslateAnim.setValue(8);
+    Animated.parallel([
+      Animated.timing(contentFadeAnim, {
+        toValue: 1,
+        duration: 220,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentTranslateAnim, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [currentStep, Boolean(taskTitle), Boolean(liveTranscript)]);
+
+  // Done completion pop
+  useEffect(() => {
+    if (currentStep === 'done') {
+      donePopAnim.setValue(0);
+      Animated.spring(donePopAnim, {
+        toValue: 1,
+        friction: 5,
+        tension: 110,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [currentStep]);
+
   // Cross-Platform Speech Recognition Starter
   const startSpeechRecognition = async () => {
     setIsListening(true);
+    setRobotFaceMode('waves');
 
     const started = await voiceRecognition.start({
       onStart: () => {
         setIsListening(true);
+        setRobotFaceMode('waves');
       },
       onTranscript: (transcript: string, isFinal: boolean) => {
         setLiveTranscript(transcript);
@@ -157,6 +355,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
       setSelectedPriority(priority);
       setCurrentStep('done');
       setLiveTranscript('');
+      setRobotFaceMode('done');
 
       playSpinnerTickSound(1200);
       speakWithTechna(`Scheduled ${title} for ${dateLabel} at ${timeRange}.`);
@@ -200,10 +399,12 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
     setTaskTitle(name);
     setLiveTranscript('');
     stopSpeechRecognition();
+    setRobotFaceMode('done');
 
     speakWithTechna('When should I schedule this?');
 
     setTimeout(() => {
+      setRobotFaceMode('waves');
       setCurrentStep('time');
       startSpeechRecognition();
     }, 1000);
@@ -264,6 +465,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
     const nextRange = conflictingInfo.nextAvailableSlot.rangeString;
     setConflictingInfo(null);
     setOccupiedWarning(null);
+    setRobotFaceMode('done');
 
     speakWithTechna(`Shifted ${title} to ${nextRange}. Assigned ${desired}.`);
     handleTimeSlotConfirmed(desired, selectedDate);
@@ -276,10 +478,12 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
     setOccupiedWarning(null);
     setLiveTranscript('');
     stopSpeechRecognition();
+    setRobotFaceMode('done');
 
     speakWithTechna(`Scheduled for ${dateStr} at ${slotStr}. What priority?`);
 
     setTimeout(() => {
+      setRobotFaceMode('waves');
       setCurrentStep('priority');
       startSpeechRecognition();
     }, 1100);
@@ -291,6 +495,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
     setSelectedPriority(p);
     setLiveTranscript('');
     stopSpeechRecognition();
+    setRobotFaceMode('done');
 
     speakWithTechna(`Saving ${p} priority task.`);
 
@@ -319,31 +524,43 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
 
     setTimeout(() => {
       onSave(finalTask);
-      onClose();
+      handleModalClose();
     }, 900);
   };
 
   return (
     <Modal
-      visible={visible}
-      animationType="fade"
+      visible={modalRendered}
+      animationType="none"
       transparent
       statusBarTranslucent={true}
-      onRequestClose={onClose}
+      onRequestClose={handleModalClose}
     >
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <View style={styles.overlay}>
-        {/* iOS Frosted Glass Backdrop Blur */}
-        <BlurView
-          intensity={Platform.OS === 'ios' ? 30 : 50}
-          tint="dark"
-          style={StyleSheet.absoluteFill}
-        />
+        {/* Animated iOS Frosted Glass Backdrop Blur */}
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: backdropAnim }]}>
+          <TouchableWithoutFeedback onPress={handleModalClose}>
+            <BlurView
+              intensity={Platform.OS === 'ios' ? 30 : 50}
+              tint="dark"
+              style={StyleSheet.absoluteFill}
+            />
+          </TouchableWithoutFeedback>
+        </Animated.View>
 
         {/* Techna Siri Edge Display Border Glow */}
         <TechnaDisplayBorderGlow active={isListening} />
 
-        <View style={styles.modalCard}>
+        {/* Animated Spring Slide-Up Sheet */}
+        <Animated.View
+          style={[
+            styles.modalCard,
+            {
+              transform: [{ translateY: sheetAnim }],
+            },
+          ]}
+        >
           {/* iOS Frosted Glass Card Blur Effect */}
           <BlurView
             intensity={Platform.OS === 'ios' ? 70 : 100}
@@ -368,7 +585,18 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
           {/* 1. Minimalist Apple Siri Header Bar */}
           <View style={styles.headerRow}>
             <View style={styles.siriHeaderGroup}>
-              <View style={[styles.siriLiveDot, isListening && [styles.siriLiveDotActive, { backgroundColor: theme.primary }]]} />
+              <Animated.View
+                style={[
+                  styles.siriLiveDot,
+                  isListening && [
+                    styles.siriLiveDotActive,
+                    {
+                      backgroundColor: theme.primary,
+                      transform: [{ scale: dotPulseAnim }],
+                    },
+                  ],
+                ]}
+              />
               <Text style={styles.siriTitleText}>Techna</Text>
               <Text style={styles.siriSubtitleText}>{isListening ? 'Listening' : 'Ready'}</Text>
             </View>
@@ -393,7 +621,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
                 iconSize={19}
                 color="#A0A0B2"
                 backgroundColor="rgba(255, 255, 255, 0.10)"
-                onPress={onClose}
+                onPress={handleModalClose}
               />
             </View>
           </View>
@@ -403,19 +631,47 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
             <TechnaOrb
               variant="full"
               isListening={isListening}
-              onPress={() => (isListening ? stopSpeechRecognition() : startSpeechRecognition())}
+              faceMode={robotFaceMode}
+              onPress={() => {
+                if (isListening) {
+                  stopSpeechRecognition();
+                  setRobotFaceMode('idle');
+                } else {
+                  setRobotFaceMode('waves');
+                  startSpeechRecognition();
+                }
+              }}
               size={180}
             />
           </View>
 
-          {/* 3. Clean Siri Query / Realtime Transcript */}
-          <View style={styles.transcriptContainer}>
+          {/* Equalizer Audio Waveform Visualizer */}
+          <VoiceWaveform isListening={isListening} color={theme.primaryLight || '#38BDF8'} />
+
+          {/* 3. Clean Siri Query / Realtime Transcript with Smooth Morph */}
+          <Animated.View
+            style={[
+              styles.transcriptContainer,
+              {
+                opacity: contentFadeAnim,
+                transform: [{ translateY: contentTranslateAnim }],
+              },
+            ]}
+          >
             {currentStep === 'done' ? (
-              <View style={styles.centerStatusGroup}>
-                <Ionicons name="checkmark-circle" size={32} color="#34D399" style={{ marginBottom: 6 }} />
+              <Animated.View
+                style={[
+                  styles.centerStatusGroup,
+                  {
+                    transform: [{ scale: donePopAnim }],
+                    opacity: donePopAnim,
+                  },
+                ]}
+              >
+                <Ionicons name="checkmark-circle" size={34} color="#34D399" style={{ marginBottom: 6 }} />
                 <Text style={styles.siriHeroPrompt}>Task Scheduled</Text>
                 <Text style={styles.siriSubPrompt}>&ldquo;{taskTitle}&rdquo;</Text>
-              </View>
+              </Animated.View>
             ) : taskTitle ? (
               <View style={styles.recognizedGroup}>
                 <Text style={styles.taskTitleHeadline} numberOfLines={2}>
@@ -446,7 +702,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
                 </Text>
               </View>
             )}
-          </View>
+          </Animated.View>
 
           {/* Conflict Alert (if any) */}
           {occupiedWarning && conflictingInfo && (
@@ -474,13 +730,11 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
 
           {/* Bottom spacing anchor */}
           <View style={{ height: 8 }} />
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
 };
-
-const { height: screenHeight } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   overlay: {
@@ -699,5 +953,18 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
+  },
+  waveformContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 38,
+    gap: 6,
+    marginBottom: 6,
+  },
+  waveformBar: {
+    width: 4.5,
+    height: 26,
+    borderRadius: 2.5,
   },
 });

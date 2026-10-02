@@ -22,6 +22,8 @@ import { playSpinnerTickSound, speakWithTechna } from '../services/soundEffects'
 import { parseVoiceToTaskForm } from '../services/voiceParser';
 import { TechnaDisplayBorderGlow } from './TechnaDisplayBorderGlow';
 import { voiceRecognition } from '../services/voiceRecognition';
+import { robotAlert } from '../services/robotAlert';
+import { RobotAlertModal } from './RobotAlertModal';
 import {
   computeTimeRange,
   getOccupiedSchedule,
@@ -315,7 +317,9 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
   const handleSave = () => {
     const trimmed = taskTitle.trim();
     if (!trimmed) {
-      Alert.alert('Required', 'Please enter a task name.');
+      robotAlert('Required', 'Please enter a task name.', [
+        { text: 'OK', style: 'default' }
+      ], { type: 'required' });
       return;
     }
 
@@ -714,6 +718,9 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Robot Alert Pop-up */}
+      <RobotAlertModal />
     </View>
   );
 };

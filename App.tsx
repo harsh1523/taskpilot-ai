@@ -28,6 +28,7 @@ import { OnboardingScreen } from './src/components/OnboardingScreen';
 import { DateCapsulePicker, DateItem } from './src/components/DateCapsulePicker';
 import { SplashScreenView } from './src/components/SplashScreenView';
 import { TechnaOrb } from './src/components/common/TechnaOrb';
+import { RobotAlertModal } from './src/components/RobotAlertModal';
 
 // Prevent native splash screen from auto hiding before app initializes
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -316,6 +317,9 @@ function MainApp() {
         existingTasks={tasks}
         onShiftTask={handleShiftTask}
       />
+
+      {/* Global Animated Robot Alert Pop-up */}
+      <RobotAlertModal />
     </SafeAreaView>
   );
 }

@@ -10,6 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { IsometricCubeIllustration } from './IsometricCubeIllustration';
 import { colors, spacing, radius, fontSizes, fontWeights, commonStyles, useTheme } from '../theme';
+import { TaskPilotBrand } from './common/TaskPilotBrand';
 
 const { width, height } = Dimensions.get('window');
 
@@ -40,16 +41,16 @@ export const SplashScreenView: React.FC<SplashScreenViewProps> = ({ onFinish }) 
           useNativeDriver: true,
         }),
       ]),
-      // Progress line fill
+      // Extended progress line fill so user can enjoy waving gesture & pixel HELLO
       Animated.timing(progressAnim, {
         toValue: 1,
-        duration: 900,
+        duration: 2500,
         useNativeDriver: false,
       }),
       // Exit fade out
       Animated.timing(exitAnim, {
         toValue: 0,
-        duration: 400,
+        duration: 500,
         useNativeDriver: true,
       }),
     ]).start(() => {
@@ -89,13 +90,20 @@ export const SplashScreenView: React.FC<SplashScreenViewProps> = ({ onFinish }) 
           },
         ]}
       >
-        {/* 3D Floating Companion Robot */}
+        {/* 3D Floating Companion Robot with waving gesture & glowing HELLO visor */}
         <View style={styles.illustrationWrapper}>
-          <IsometricCubeIllustration size={Math.min(width * 0.72, 290)} />
+          <IsometricCubeIllustration
+            size={Math.min(width * 0.72, 290)}
+            showHelloFace={true}
+            enableHandGesture={true}
+          />
         </View>
 
-        {/* Brand Title */}
+        {/* Brand Title with Glowing TaskPilot AI Icon Badge */}
         <View style={styles.textContainer}>
+          <View style={styles.brandEmblemRow}>
+            <TaskPilotBrand variant="icon" size={48} showGlow animated />
+          </View>
           <Text style={styles.brandTitle}>
             TASKPILOT <Text style={[styles.brandAccent, { color: theme.primaryLight }]}>AI</Text>
           </Text>
@@ -142,6 +150,9 @@ const styles = StyleSheet.create({
   textContainer: {
     alignItems: 'center',
     marginBottom: spacing.huge,
+  },
+  brandEmblemRow: {
+    marginBottom: spacing.md,
   },
   brandTitle: {
     fontSize: 32,
