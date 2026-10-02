@@ -15,7 +15,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { IsometricCubeIllustration } from './IsometricCubeIllustration';
 import { colors, spacing, radius, fontSizes, fontWeights, commonStyles, useTheme } from '../theme';
-import { TaskPilotBrand } from './common/TaskPilotBrand';
 
 const { width, height } = Dimensions.get('window');
 

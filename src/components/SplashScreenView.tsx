@@ -10,7 +10,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { IsometricCubeIllustration } from './IsometricCubeIllustration';
 import { colors, spacing, radius, fontSizes, fontWeights, commonStyles, useTheme } from '../theme';
-import { TaskPilotBrand } from './common/TaskPilotBrand';
 
 const { width, height } = Dimensions.get('window');
 
@@ -99,11 +98,8 @@ export const SplashScreenView: React.FC<SplashScreenViewProps> = ({ onFinish }) 
           />
         </View>
 
-        {/* Brand Title with Glowing TaskPilot AI Icon Badge */}
+        {/* Brand Title */}
         <View style={styles.textContainer}>
-          <View style={styles.brandEmblemRow}>
-            <TaskPilotBrand variant="icon" size={48} showGlow animated />
-          </View>
           <Text style={styles.brandTitle}>
             TASKPILOT <Text style={[styles.brandAccent, { color: theme.primaryLight }]}>AI</Text>
           </Text>
@@ -150,9 +146,6 @@ const styles = StyleSheet.create({
   textContainer: {
     alignItems: 'center',
     marginBottom: spacing.huge,
-  },
-  brandEmblemRow: {
-    marginBottom: spacing.md,
   },
   brandTitle: {
     fontSize: 32,
