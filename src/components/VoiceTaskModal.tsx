@@ -11,6 +11,7 @@ import {
   Dimensions,
   Animated,
   Easing,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -158,6 +159,8 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
   } | null>(null);
 
   const [selectedPriority, setSelectedPriority] = useState<Priority>('high');
+  const [manualInputText, setManualInputText] = useState('');
+  const [voiceNotice, setVoiceNotice] = useState('');
 
   // Occupied blocks and conflict checking powered by scheduleUtils
   const defaultOccupiedSchedule = useMemo(() => {
@@ -296,6 +299,7 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
   const startSpeechRecognition = async () => {
     setIsListening(true);
     setRobotFaceMode('waves');
+    setVoiceNotice('');
 
     const started = await voiceRecognition.start({
       onStart: () => {
@@ -308,16 +312,24 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
           handleSpokenInput(transcript);
         }
       },
-      onError: () => {
+      onError: (err: string) => {
         setIsListening(false);
+        setRobotFaceMode('idle');
+        setVoiceNotice(err);
       },
       onEnd: () => {
         setIsListening(false);
+        setRobotFaceMode('idle');
       },
     });
 
     if (!started) {
       setIsListening(false);
+      setRobotFaceMode('idle');
+      const env = voiceRecognition.getEnvironmentStatus();
+      if (!env.isAvailable && env.message) {
+        setVoiceNotice(env.message);
+      }
     }
   };
 
@@ -648,6 +660,16 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
           {/* Equalizer Audio Waveform Visualizer */}
           <VoiceWaveform isListening={isListening} color={theme.primaryLight || '#38BDF8'} />
 
+          {/* Voice Notice / Permission Info Pill */}
+          {!!voiceNotice && !isListening && (
+            <View style={styles.noticePill}>
+              <Ionicons name="information-circle" size={14} color="#FBBF24" style={{ marginRight: 6 }} />
+              <Text style={styles.noticePillText} numberOfLines={2}>
+                {voiceNotice}
+              </Text>
+            </View>
+          )}
+
           {/* 3. Clean Siri Query / Realtime Transcript with Smooth Morph */}
           <Animated.View
             style={[
@@ -700,6 +722,85 @@ export const VoiceTaskModal: React.FC<VoiceTaskModalProps> = ({
                 <Text style={styles.siriSubPrompt}>
                   Tap Techna or speak naturally
                 </Text>
+              </View>
+            )}
+
+            {/* Quick Voice / Text Input Row when active */}
+            {currentStep !== 'done' && (
+              <View style={styles.quickInputSection}>
+                <View style={styles.inputBarRow}>
+                  <TextInput
+                    style={styles.textInputBar}
+                    placeholder={isListening ? "Listening... or type command" : "Type or dictate task details..."}
+                    placeholderTextColor="rgba(255, 255, 255, 0.42)"
+                    value={manualInputText}
+                    onChangeText={setManualInputText}
+                    onSubmitEditing={() => {
+                      if (manualInputText.trim()) {
+                        handleSpokenInput(manualInputText.trim());
+                        setManualInputText('');
+                      }
+                    }}
+                    returnKeyType="done"
+                  />
+                  {manualInputText.trim().length > 0 ? (
+                    <TouchableOpacity
+                      style={[styles.sendInputBtn, { backgroundColor: theme.primary }]}
+                      onPress={() => {
+                        playSpinnerTickSound(1100);
+                        handleSpokenInput(manualInputText.trim());
+                        setManualInputText('');
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="arrow-up" size={18} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={[
+                        styles.micToggleBtn,
+                        isListening
+                          ? { backgroundColor: '#EF4444' }
+                          : { backgroundColor: theme.primary },
+                      ]}
+                      onPress={() => {
+                        playSpinnerTickSound(1000);
+                        if (isListening) {
+                          stopSpeechRecognition();
+                          setRobotFaceMode('idle');
+                        } else {
+                          startSpeechRecognition();
+                        }
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name={isListening ? "mic" : "mic-outline"} size={17} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Quick Assistant Suggestion Chips */}
+                {!taskTitle && (
+                  <View style={styles.suggestionChipsRow}>
+                    {[
+                      'Doctor tomorrow 10am',
+                      'Gym today 6pm',
+                      'Review project tomorrow 2pm',
+                    ].map((chip) => (
+                      <TouchableOpacity
+                        key={chip}
+                        style={styles.suggestionChip}
+                        onPress={() => {
+                          playSpinnerTickSound(900);
+                          handleSpokenInput(chip);
+                        }}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={styles.suggestionChipText}>{chip}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
               </View>
             )}
           </Animated.View>
@@ -966,5 +1067,81 @@ const styles = StyleSheet.create({
     width: 4.5,
     height: 26,
     borderRadius: 2.5,
+  },
+  noticePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(251, 191, 36, 0.12)',
+    borderColor: 'rgba(251, 191, 36, 0.3)',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    alignSelf: 'center',
+  },
+  noticePillText: {
+    color: '#FDE68A',
+    fontSize: 11,
+    fontWeight: '500',
+    textAlign: 'center',
+    flexShrink: 1,
+  },
+  quickInputSection: {
+    width: '100%',
+    marginTop: 12,
+    paddingHorizontal: 4,
+  },
+  inputBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    paddingLeft: 14,
+    paddingRight: 5,
+    paddingVertical: 4,
+  },
+  textInputBar: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 13,
+    paddingVertical: 6,
+  },
+  sendInputBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micToggleBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  suggestionChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  suggestionChip: {
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
+    borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+  },
+  suggestionChipText: {
+    color: 'rgba(255, 255, 255, 0.75)',
+    fontSize: 11,
+    fontWeight: '500',
   },
 });

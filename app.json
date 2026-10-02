@@ -22,7 +22,11 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "RECORD_AUDIO"
+        "RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ]
     },
     "web": {
@@ -52,6 +56,11 @@
           "speechRecognitionPermission": "Allow Techna to recognize your speech to create tasks."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "4dc5dd57-4758-4566-a761-4751e9542a17"
+      }
+    }
   }
 }

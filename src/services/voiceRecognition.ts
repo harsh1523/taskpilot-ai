@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo';
+import * as Speech from 'expo-speech';
 
 // Cached reference to native module or null
 let cachedExpoSpeechModule: any = undefined;
@@ -10,25 +11,42 @@ function getExpoSpeechRecognitionModule(): any {
   if (cachedExpoSpeechModule !== undefined) return cachedExpoSpeechModule;
 
   try {
-    // Check if the native binary actually contains ExpoSpeechRecognition before requiring the JS package.
-    // In Expo Go or environments without native binary, requireOptionalNativeModule safely returns null.
-    const nativeMod =
+    // 1. Check if the native binary already registered ExpoSpeechRecognition
+    let nativeMod =
       typeof requireOptionalNativeModule === 'function'
         ? requireOptionalNativeModule('ExpoSpeechRecognition')
         : (globalThis as any)?.expo?.modules?.ExpoSpeechRecognition || null;
 
     if (!nativeMod) {
-      cachedExpoSpeechModule = null;
-      return null;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const mod = require('expo-speech-recognition');
+        nativeMod = mod?.ExpoSpeechRecognitionModule || null;
+      } catch {
+        // Native binary does not contain the module (e.g. Expo Go)
+      }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const mod = require('expo-speech-recognition');
-    cachedExpoSpeechModule = mod?.ExpoSpeechRecognitionModule || nativeMod;
+    cachedExpoSpeechModule = nativeMod || null;
     return cachedExpoSpeechModule;
   } catch {
     cachedExpoSpeechModule = null;
     return null;
+  }
+}
+
+/** Stop any ongoing TTS playback so it does not interfere with microphone capture */
+function stopAllAudioOutput(): void {
+  try {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    } else {
+      Speech.stop().catch(() => {});
+    }
+  } catch {
+    // Ignore audio interruption errors
   }
 }
 
@@ -39,11 +57,19 @@ export interface VoiceRecognitionHandlers {
   onEnd?: () => void;
 }
 
+export interface EnvironmentStatus {
+  isAvailable: boolean;
+  runtime: 'native' | 'web' | 'expo_go';
+  message?: string;
+}
+
 class VoiceRecognitionService {
   private activeRecognition: any = null;
   private isListeningActive = false;
   private silenceTimer: any = null;
+  private restartTimer: any = null;
   private lastTranscript = '';
+  private currentHandlers: VoiceRecognitionHandlers = {};
   private subscriptions: { remove: () => void }[] = [];
 
   private removeListeners() {
@@ -56,13 +82,48 @@ class VoiceRecognitionService {
   }
 
   /**
+   * Diagnostic to check runtime environment and speech capability
+   */
+  getEnvironmentStatus(): EnvironmentStatus {
+    if (Platform.OS === 'web') {
+      const hasWebSpeech =
+        typeof window !== 'undefined' &&
+        !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+      return {
+        isAvailable: hasWebSpeech,
+        runtime: 'web',
+        message: hasWebSpeech
+          ? 'Web Speech API is available'
+          : 'Browser does not support the Web SpeechRecognition API (Chrome, Safari, Edge recommended)',
+      };
+    }
+
+    const nativeMod = getExpoSpeechRecognitionModule();
+    if (nativeMod) {
+      return {
+        isAvailable: true,
+        runtime: 'native',
+        message: 'Native ExpoSpeechRecognitionModule is available',
+      };
+    }
+
+    return {
+      isAvailable: false,
+      runtime: 'expo_go',
+      message:
+        'Voice recognition requires a Development Build (npx expo run:ios/android). In Expo Go, use keyboard dictation 🎙️ or text input.',
+    };
+  }
+
+  /**
    * Check if speech recognition is available in current runtime
    */
   async isAvailable(): Promise<boolean> {
-    if (Platform.OS === 'web') {
-      if (typeof window === 'undefined') return false;
-      return !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
-    }
+    const status = this.getEnvironmentStatus();
+    if (!status.isAvailable) return false;
+
+    if (Platform.OS === 'web') return true;
+
     try {
       const nativeMod = getExpoSpeechRecognitionModule();
       if (nativeMod && typeof nativeMod.isRecognitionAvailable === 'function') {
@@ -71,7 +132,7 @@ class VoiceRecognitionService {
     } catch {
       return false;
     }
-    return false;
+    return true;
   }
 
   /**
@@ -81,6 +142,10 @@ class VoiceRecognitionService {
     this.stop();
     this.isListeningActive = true;
     this.lastTranscript = '';
+    this.currentHandlers = handlers;
+
+    // Prevent robot speech from bleeding into the microphone
+    stopAllAudioOutput();
 
     // 1. Native Mobile Recognition (iOS & Android via ExpoSpeechRecognitionModule in custom dev builds)
     if (Platform.OS !== 'web') {
@@ -91,9 +156,24 @@ class VoiceRecognitionService {
           typeof nativeMod.start === 'function' &&
           typeof nativeMod.addListener === 'function'
         ) {
-          const perm = await nativeMod.requestPermissionsAsync();
-          if (!perm.granted) {
-            handlers.onError?.('Microphone & Speech Recognition permission is required. Please enable it in device settings.');
+          // Check permissions first, request if needed
+          let hasPermission = false;
+          try {
+            if (typeof nativeMod.getPermissionsAsync === 'function') {
+              const currentPerm = await nativeMod.getPermissionsAsync();
+              hasPermission = !!currentPerm.granted;
+            }
+          } catch {}
+
+          if (!hasPermission && typeof nativeMod.requestPermissionsAsync === 'function') {
+            const requested = await nativeMod.requestPermissionsAsync();
+            hasPermission = !!requested.granted;
+          }
+
+          if (!hasPermission) {
+            handlers.onError?.(
+              'Microphone & Speech Recognition permission is required. Please enable it in device settings.'
+            );
             this.isListeningActive = false;
             handlers.onEnd?.();
             return false;
@@ -107,7 +187,11 @@ class VoiceRecognitionService {
               handlers.onStart?.();
             }),
             nativeMod.addListener('result', (event: any) => {
-              const transcript = event.results?.[0]?.transcript || '';
+              const transcript =
+                event.results?.[0]?.transcript ||
+                event.results?.map?.((r: any) => r.transcript)?.join(' ') ||
+                '';
+
               if (transcript) {
                 this.lastTranscript = transcript;
                 handlers.onTranscript?.(transcript, !!event.isFinal);
@@ -117,31 +201,40 @@ class VoiceRecognitionService {
                   if (this.isListeningActive && this.lastTranscript) {
                     handlers.onTranscript?.(this.lastTranscript, true);
                   }
-                }, 1100);
+                }, 1200);
               }
             }),
             nativeMod.addListener('error', (event: any) => {
-              const errCode = event.error || event.message;
-              if (errCode === 'no-speech' || errCode === 7) {
-                // Typical silence timeout, keep listening
+              const errCode = event.error || event.message || '';
+              // Non-fatal timeouts: silence or short pause from user
+              const isSilenceTimeout =
+                errCode === 'no-speech' ||
+                errCode === 'speech-timeout' ||
+                errCode === 7 || // ERROR_NO_MATCH
+                errCode === 6; // ERROR_SPEECH_TIMEOUT
+
+              if (isSilenceTimeout) {
+                // If listening is still active, seamlessly keep listening
+                if (this.isListeningActive) {
+                  this.scheduleNativeRestart(nativeMod);
+                }
                 return;
               }
+
               console.warn('Native speech recognition event error:', event);
               handlers.onError?.(`Speech recognition: ${event.message || errCode}`);
             }),
             nativeMod.addListener('end', () => {
-              this.isListeningActive = false;
-              handlers.onEnd?.();
+              // If user did not manually stop listening, keep session active
+              if (this.isListeningActive) {
+                this.scheduleNativeRestart(nativeMod);
+              } else {
+                handlers.onEnd?.();
+              }
             })
           );
 
-          await nativeMod.start({
-            lang: 'en-US',
-            interimResults: true,
-            continuous: true,
-            addsPunctuation: true,
-          });
-
+          this.startNativeRecognition(nativeMod);
           return true;
         }
       } catch (err: any) {
@@ -190,30 +283,41 @@ class VoiceRecognitionService {
                 if (this.isListeningActive && this.lastTranscript) {
                   handlers.onTranscript?.(this.lastTranscript, true);
                 }
-              }, 1100);
+              }, 1200);
             }
           };
 
           rec.onerror = (evt: any) => {
-            if (evt.error === 'no-speech') return;
+            if (evt.error === 'no-speech') {
+              // Non-fatal silence pause, will restart onend if active
+              return;
+            }
             if (evt.error === 'not-allowed') {
-              handlers.onError?.('Microphone permission blocked. Please enable microphone permissions in browser settings.');
+              handlers.onError?.(
+                'Microphone permission blocked. Please enable microphone permissions in your browser.'
+              );
               this.stop();
             } else if (evt.error === 'network') {
               handlers.onError?.('Speech network error. You can also type or use keyboard dictation.');
             } else {
-              handlers.onError?.(`Speech error: ${evt.error}`);
+              handlers.onError?.(`Speech recognition notice: ${evt.error}`);
             }
           };
 
           rec.onend = () => {
             if (this.isListeningActive) {
-              try {
-                rec.start();
-              } catch {
-                this.isListeningActive = false;
-                handlers.onEnd?.();
-              }
+              // Delay slightly to prevent rapid-fire restart exception in Chrome
+              if (this.restartTimer) clearTimeout(this.restartTimer);
+              this.restartTimer = setTimeout(() => {
+                if (this.isListeningActive) {
+                  try {
+                    rec.start();
+                  } catch {
+                    this.isListeningActive = false;
+                    handlers.onEnd?.();
+                  }
+                }
+              }, 150);
             } else {
               handlers.onEnd?.();
             }
@@ -224,7 +328,7 @@ class VoiceRecognitionService {
           return true;
         } catch (err: any) {
           console.warn('Failed to start web speech recognition:', err);
-          handlers.onError?.('Could not initialize speech recognition. Use dictation or chips below.');
+          handlers.onError?.('Could not initialize speech recognition. Use dictation or type below.');
           this.isListeningActive = false;
           handlers.onEnd?.();
           return false;
@@ -245,6 +349,72 @@ class VoiceRecognitionService {
   }
 
   /**
+   * Internal helper to start or restart the native speech recognizer
+   */
+  private startNativeRecognition(nativeMod: any) {
+    try {
+      nativeMod.start({
+        lang: 'en-US',
+        interimResults: true,
+        continuous: true,
+        addsPunctuation: true,
+        iosVoiceProcessingEnabled: true,
+        iosTaskHint: 'dictation',
+        iosCategory: {
+          category: 'playAndRecord',
+          categoryOptions: ['defaultToSpeaker', 'allowBluetooth'],
+          mode: 'measurement',
+        },
+        androidIntentOptions: {
+          EXTRA_LANGUAGE_MODEL: 'free_form',
+          EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 3000,
+          EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 2500,
+          EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 2500,
+        },
+        contextualStrings: [
+          'TaskPilot',
+          'Techna',
+          'task',
+          'meeting',
+          'project',
+          'priority',
+          'urgent',
+          'today',
+          'tomorrow',
+          'morning',
+          'afternoon',
+          'evening',
+          'gym',
+          'call',
+          'doctor',
+          'review',
+          'design',
+          'development',
+          'schedule',
+          'shift',
+          'high',
+          'medium',
+          'low',
+        ],
+      });
+    } catch (e) {
+      console.warn('Error starting native speech recognition:', e);
+    }
+  }
+
+  /**
+   * Internal helper to schedule seamless restart on pause/silence timeout
+   */
+  private scheduleNativeRestart(nativeMod: any) {
+    if (this.restartTimer) clearTimeout(this.restartTimer);
+    this.restartTimer = setTimeout(() => {
+      if (this.isListeningActive && nativeMod) {
+        this.startNativeRecognition(nativeMod);
+      }
+    }, 180);
+  }
+
+  /**
    * Stop listening
    */
   stop(): void {
@@ -253,13 +423,23 @@ class VoiceRecognitionService {
       clearTimeout(this.silenceTimer);
       this.silenceTimer = null;
     }
+    if (this.restartTimer) {
+      clearTimeout(this.restartTimer);
+      this.restartTimer = null;
+    }
     this.removeListeners();
+
     const nativeMod = getExpoSpeechRecognitionModule();
-    if (Platform.OS !== 'web' && nativeMod?.stop) {
+    if (Platform.OS !== 'web' && nativeMod) {
       try {
-        nativeMod.stop();
+        if (typeof nativeMod.stop === 'function') {
+          nativeMod.stop();
+        } else if (typeof nativeMod.abort === 'function') {
+          nativeMod.abort();
+        }
       } catch {}
     }
+
     if (this.activeRecognition) {
       try {
         this.activeRecognition.stop();

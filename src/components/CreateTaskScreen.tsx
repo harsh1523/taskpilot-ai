@@ -189,9 +189,7 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
     setLiveTranscript('');
     setAutoFillNotice('');
 
-    speakWithTechna("I'm listening. Tell me your task details.");
-
-    await voiceRecognition.start({
+    const started = await voiceRecognition.start({
       onStart: () => {
         setIsListening(true);
       },
@@ -206,11 +204,23 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({
       onError: (err: string) => {
         setAutoFillNotice(err);
         setIsListening(false);
+        if (err.includes('permission') || err.includes('Development Build')) {
+          robotAlert('Voice Recognition', err, [{ text: 'OK' }], { type: 'info' });
+        }
       },
       onEnd: () => {
         setIsListening(false);
       },
     });
+
+    if (!started) {
+      setIsListening(false);
+      const env = voiceRecognition.getEnvironmentStatus();
+      if (!env.isAvailable && env.message) {
+        setAutoFillNotice(env.message);
+        robotAlert('Voice Recognition', env.message, [{ text: 'OK' }], { type: 'info' });
+      }
+    }
   };
 
   const stopSpeechRecognition = () => {
