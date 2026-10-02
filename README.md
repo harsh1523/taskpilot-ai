@@ -93,9 +93,9 @@ taskpilot-ai/
 │   │   ├── CreateTaskScreen.tsx         # Detailed task customization screen
 │   │   ├── DateCapsulePicker.tsx        # Horizontal date strip picker
 │   │   ├── Header.tsx                   # Live real-time clock & filter segment
-│   │   ├── IsometricCubeIllustration.tsx # Geometric 3D vector illustration
-│   │   ├── ModernTimePicker.tsx         # Wheel time & duration picker
+│   │   ├── IsometricCubeIllustration.tsx # 3D companion robot with hand gestures
 │   │   ├── OnboardingScreen.tsx         # Welcome & introduction screen
+│   │   ├── RobotAlertModal.tsx          # 3D robot pop-up alert & notification dialog
 │   │   ├── SplashScreenView.tsx         # Branded startup animated splash
 │   │   ├── TaskItem.tsx                 # Swipeable task card with delete sound
 │   │   ├── TechnaDisplayBorderGlow.tsx  # Dynamic border aura animation
