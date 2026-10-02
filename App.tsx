@@ -30,8 +30,8 @@ import { SplashScreenView } from './src/components/SplashScreenView';
 import { TechnaOrb } from './src/components/common/TechnaOrb';
 import { RobotAlertModal } from './src/components/RobotAlertModal';
 
-// Prevent native splash screen from auto hiding before app initializes
-SplashScreen.preventAutoHideAsync().catch(() => {});
+// Immediately hide OS native splash so the custom animated Techna splash screen displays immediately without showing any static icon
+SplashScreen.hideAsync().catch(() => {});
 
 const ONBOARDING_KEY = '@ai_task_manager_has_seen_onboarding_v1';
 
@@ -54,15 +54,15 @@ function MainApp() {
 
   // Initialize app
   useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
     initializeApp();
   }, []);
 
   const initializeApp = async () => {
     try {
       await Promise.all([checkOnboarding(), loadTasks()]);
-    } finally {
-      // Hide OS native splash so animated branded splash can display smoothly
-      await SplashScreen.hideAsync().catch(() => {});
+    } catch (e) {
+      console.warn('Init error:', e);
     }
   };
 
